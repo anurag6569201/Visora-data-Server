@@ -4,7 +4,7 @@ from django.db import models
 class Project(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField()
-    token = models.CharField(max_length=100, unique=True)
+    token = models.CharField(max_length=100, unique=False)
 
     def get_folder_name(self):
         sanitized_name = self.name.replace(" ", "_")
