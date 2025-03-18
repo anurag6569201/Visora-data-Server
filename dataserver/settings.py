@@ -125,6 +125,19 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+CORS_ALLOW_CREDENTIALS = True  # Required for cookies
+CSRF_COOKIE_HTTPONLY = False  # Allows frontend to access CSRF cookie
+CSRF_COOKIE_SECURE = False  # Set to True in production
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
