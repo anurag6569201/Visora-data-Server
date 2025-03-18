@@ -9,9 +9,15 @@ from django.conf import settings
 from django.views import View
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
-
-from .serializers import ProjectCommentSerializer, ProjectLikeSerializer
-from .models import Project, ProjectFile,ProjectComment,ProjectLike
+from django.views.decorators.csrf import csrf_exempt
+from .serializers import ProjectCommentSerializer, ProjectLikeSerializer,ProjectSerializer
+from .models import Project, ProjectFile,ProjectComment,ProjectLike,UserNameDb
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+import json
+from django.conf import settings
+from rest_framework.permissions import BasePermission
+from rest_framework.decorators import api_view
 
 
 class UploadProjectAPIView(APIView):
@@ -88,7 +94,18 @@ def list_projects(request):
     return JsonResponse({"projects": projects_data})
 
 
-
+@api_view(['GET'])
+def get_project(request, id):
+    try:
+        project = Project.objects.get(id=id)  # Django will now match the UUID correctly
+        serializer = ProjectSerializer(project)
+        return Response(serializer.data)  # DRF handles JSON serialization
+    except Project.DoesNotExist:
+        return Response({"error": "Project not found"}, status=404)
+    except ValueError:
+        return Response({"error": "Invalid UUID format"}, status=400)
+    
+    
 class CommentCreateView(APIView):
     serializer_class = ProjectCommentSerializer
 
@@ -101,34 +118,46 @@ class CommentCreateView(APIView):
         serializer.save(user=self.request.user, project=project)
 
 
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
+
 
 @method_decorator(csrf_exempt, name='dispatch')
 class LikeToggleView(View):
     def get(self, request, project_id):
         """Return the like count and whether the user has liked the project"""
         token = request.headers.get("Authorization")
-        print(token)
+        print("Token received:", token)
+
         if not token:
             return JsonResponse({"error": "Unauthorized"}, status=401)
 
+        user = UserNameDb.objects.filter(username=token).first()
+        if not user:
+            return JsonResponse({"error": "User not found"}, status=404)
+
+        if not user:
+            return JsonResponse({"error": "User not found"}, status=404)
+
         project = get_object_or_404(Project, id=project_id)
         total_likes = ProjectLike.objects.filter(project=project).count()
-        is_liked = ProjectLike.objects.filter(user_token=token, project=project).exists()
+        is_liked = ProjectLike.objects.filter(username=user, project=project).exists()
 
         return JsonResponse({"total_likes": total_likes, "is_liked": is_liked})
 
     def post(self, request, project_id):
         """Toggle like status using get_or_create"""
         token = request.headers.get("Authorization")
-        print(token)
+        print("Token received:", token)
+
         if not token:
             return JsonResponse({"error": "Unauthorized"}, status=401)
 
+        user = UserNameDb.objects.filter(username=token).first()
+        if not user:
+            return JsonResponse({"error": "User not found"}, status=404)
+
         project = get_object_or_404(Project, id=project_id)
 
-        like, created = ProjectLike.objects.get_or_create(user_token=token, project=project)
+        like, created = ProjectLike.objects.get_or_create(username=user, project=project)
 
         if not created:
             like.delete()
@@ -138,3 +167,23 @@ class LikeToggleView(View):
 
         total_likes = ProjectLike.objects.filter(project=project).count()
         return JsonResponse({"liked": liked, "likes_count": total_likes})
+    
+
+@method_decorator(csrf_exempt, name='dispatch')
+class RegisterUserNameDbView(View):
+    def post(self, request):
+        try:
+            data = json.loads(request.body.decode("utf-8"))  # Corrected
+            username = data.get("username")
+            email = data.get("email")
+
+            if UserNameDb.objects.filter(username=username).exists():
+                return JsonResponse({"error": "User already exists in Visiora-Data."}, status=400)
+
+            user = UserNameDb.objects.create(username=username, email=email)
+            user.save()
+
+            return JsonResponse({"message": "User created in Visiora-Data."}, status=201)
+
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON format"}, status=400)

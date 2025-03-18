@@ -206,3 +206,6 @@ JAZZMIN_SETTINGS = {
     "custom_css": "../static/assets/css/jazzmin.css",
     "custom_js": "../static/assets/js/jazzmin.js"
 }
+
+
+VISIORA_BACKEND_SECRET_KEY = "4e3f9b7d5e16a5c0c8f75f2a9132b7e1d6e9a74a8b2c3f1d2e4a5b6c7d8e9f0a"

@@ -3,13 +3,18 @@ import uuid
 from django.db import models
 from django.contrib.auth.models import User
 
+
+class UserNameDb(models.Model):
+    username = models.CharField(max_length=100)
+    email = models.CharField(max_length=100, unique=False,default='visora@gmail.com')
+
 class Project(models.Model):
     id = models.UUIDField(default=uuid.uuid4, unique=True, primary_key=True, editable=False)  # Unique identifier
     name = models.CharField(max_length=255)
     description = models.TextField()
     token = models.CharField(max_length=100, unique=False,default='abcd')
     username = models.CharField(max_length=100, unique=False,default='visora')
-    email = models.CharField(max_length=100, unique=False,default='visora.in')
+    email = models.CharField(max_length=100, unique=False,default='visora@gmail.com')
 
     def get_folder_name(self):
         sanitized_name = self.name.replace(" ", "_")
@@ -32,14 +37,14 @@ class ProjectFile(models.Model):
 
 class ProjectComment(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="comments")
-    user_token = models.CharField(max_length=255,default="abcd") 
+    username = models.ForeignKey(UserNameDb, on_delete=models.CASCADE, related_name="usernamecomment") 
     text = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True) 
 
 class ProjectLike(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="likes")
-    user_token = models.CharField(max_length=255,default="abcd") 
+    username = models.ForeignKey(UserNameDb, on_delete=models.CASCADE, related_name="usernamelike") 
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.project.name} ({self.user_token})"
+        return f"{self.project.name} ({self.username})"
