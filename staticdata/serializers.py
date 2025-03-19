@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Project, ProjectFile,ProjectLike,ProjectComment
+from .models import Project, ProjectFile,ProjectLike,ProjectComment,Quiz
 
 class ProjectFileSerializer(serializers.ModelSerializer):
     class Meta:
@@ -17,13 +17,23 @@ class ProjectSerializer(serializers.ModelSerializer):
 
 
 class ProjectCommentSerializer(serializers.ModelSerializer):
-    user = serializers.StringRelatedField()
+    username = serializers.CharField(source="username.username", read_only=True)  # Fetch from username FK
 
     class Meta:
         model = ProjectComment
-        fields = ["id", "user", "text", "created_at"]
+        fields = ["id", "username", "text", "created_at"]
 
 class ProjectLikeSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProjectLike
         fields = ["id", "user", "project", "created_at"]
+
+
+
+
+class QuizSerializer(serializers.ModelSerializer):
+    project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all())
+
+    class Meta:
+        model = Quiz
+        fields = ['id', 'project', 'data']

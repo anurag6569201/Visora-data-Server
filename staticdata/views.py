@@ -18,7 +18,7 @@ import json
 from django.conf import settings
 from rest_framework.permissions import BasePermission
 from rest_framework.decorators import api_view
-
+from rest_framework import generics, permissions
 
 class UploadProjectAPIView(APIView):
     def post(self, request):
@@ -108,14 +108,34 @@ def get_project(request, id):
     
 class CommentCreateView(APIView):
     serializer_class = ProjectCommentSerializer
+    permission_classes = [permissions.AllowAny]
 
-    def get_queryset(self):
-        project_id = self.kwargs["project_id"]
-        return ProjectComment.objects.filter(project__id=project_id)
+    def get(self, request, project_id):
+        """Fetch all comments for a specific project"""
+        project = get_object_or_404(Project, id=project_id)
+        comments = ProjectComment.objects.filter(project=project).order_by("-created_at")
+        serializer = self.serializer_class(comments, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
-    def perform_create(self, serializer):
-        project = get_object_or_404(Project, id=self.kwargs["project_id"])
-        serializer.save(user=self.request.user, project=project)
+    def post(self, request, project_id):
+        """Create a new comment for a project"""
+        token = request.headers.get("Authorization")
+        print("comment Token received:", token)
+        if not token:
+            return JsonResponse({"error": "Unauthorized"}, status=401)
+
+        user = UserNameDb.objects.filter(username=token).first()
+        if not user:
+            return JsonResponse({"error": "User not found"}, status=404)
+
+        project = get_object_or_404(Project, id=project_id)
+        serializer = self.serializer_class(data=request.data)
+
+        if serializer.is_valid():
+            serializer.save(username=user, project=project)  # Save user instance
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 
@@ -187,3 +207,12 @@ class RegisterUserNameDbView(View):
 
         except json.JSONDecodeError:
             return JsonResponse({"error": "Invalid JSON format"}, status=400)
+        
+
+from rest_framework import viewsets
+from .models import Quiz
+from .serializers import QuizSerializer
+class QuizViewSet(viewsets.ModelViewSet):
+    queryset = Quiz.objects.all()
+    serializer_class = QuizSerializer
+    lookup_field = 'id'

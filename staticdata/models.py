@@ -48,3 +48,12 @@ class ProjectLike(models.Model):
 
     def __str__(self):
         return f"{self.project.name} ({self.username})"
+
+
+
+class Quiz(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="quizzes")
+    data = models.JSONField()
+
+    def __str__(self):
+        return f"Quiz for {self.project.name}"
