@@ -1,0 +1,639 @@
+
+        <html>
+          <head>
+            <style></style>
+          </head>
+          <body>
+            
+            <script>// Vec2 Class
+class Vec2 {
+  constructor(x = 0, y = 0) {
+    this.x = x;
+    this.y = y;
+  }
+
+  set(x, y) {
+    this.x = x;
+    this.y = y;
+    return this;
+  }
+
+  clone() {
+    return new Vec2(this.x, this.y);
+  }
+
+  add(other) {
+    return new Vec2(this.x + other.x, this.y + other.y);
+  }
+
+  subtract(other) {
+    return new Vec2(this.x - other.x, this.y - other.y);
+  }
+
+  scale(scalar) {
+    return new Vec2(this.x * scalar, this.y * scalar);
+  }
+
+  length() {
+    return Math.sqrt(this.x * this.x + this.y * this.y);
+  }
+
+  normalize() {
+    const len = this.length();
+    if (len > 0) {
+      return new Vec2(this.x / len, this.y / len);
+    }
+    return new Vec2();
+  }
+
+  dot(other) {
+    return this.x * other.x + this.y * other.y;
+  }
+
+  distanceTo(other) {
+    const dx = this.x - other.x;
+    const dy = this.y - other.y;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+}
+
+class Shape {
+  static Circle = 1;
+  static Segment = 2;
+  static Box = 3;
+  static Capsule = 4;
+}
+
+// Circle Class
+class Circle {
+  constructor(radius) {
+    this.type = Shape.Circle;
+    this.radius = radius;
+    this.position = new Vec2();
+    this.rotation = 0;
+  }
+
+  setPosition(x, y) {
+    this.position.set(x, y);
+  }
+
+  getWorldPosition() {
+    return this.position.clone();
+  }
+}
+
+class Capsule {
+  constructor(w, r) {
+    this.type = Shape.Capsule;
+    this.w = w;
+    this.p1 = new Vec2(-w / 2, 0);
+    this.p2 = new Vec2(w / 2, 0);
+    this.radius = r;
+    this.position = new Vec2();
+    this.rotation = 0;
+  }
+
+  setPosition(x, y) {
+    this.position.set(x, y);
+  }
+
+  getWorldPosition1() {
+    // Calculate p1 in world space
+    const cos = Math.cos(this.rotation);
+    const sin = Math.sin(this.rotation);
+    const x = this.p1.x * cos - this.p1.y * sin + this.position.x;
+    const y = this.p1.x * sin + this.p1.y * cos + this.position.y;
+    return new Vec2(x, y);
+  }
+
+  getWorldPosition2() {
+    // Calculate p2 in world space
+    const cos = Math.cos(this.rotation);
+    const sin = Math.sin(this.rotation);
+    const x = this.p2.x * cos - this.p2.y * sin + this.position.x;
+    const y = this.p2.x * sin + this.p2.y * cos + this.position.y;
+    return new Vec2(x, y);
+  }
+}
+
+// Collision Manifold Class
+class Manifold {
+  constructor() {
+    this.normal = new Vec2(); // Direction from shape A to shape B
+    this.penetration = 0;     // Penetration depth
+    this.contactPoint = new Vec2(); // Point of contact
+    this.colliding = false;   // Are shapes colliding?
+  }
+}
+
+// Collision Detection Functions
+function closestPointOnSegment(point, lineStart, lineEnd) {
+  const line = lineEnd.subtract(lineStart);
+  const len = line.length();
+  
+  if (len === 0) return lineStart.clone(); // Segment is a point
+  
+  // Project point onto line segment
+  const t = Math.max(0, Math.min(1, point.subtract(lineStart).dot(line) / (len * len)));
+  
+  return lineStart.add(line.scale(t));
+}
+
+function testCircleCapsule(circle, capsule) {
+  const manifold = new Manifold();
+  
+  // Get capsule endpoints in world space
+  const p1 = capsule.getWorldPosition1();
+  const p2 = capsule.getWorldPosition2();
+  
+  // Find closest point on capsule spine to circle center
+  const circleCenter = circle.getWorldPosition();
+  const closest = closestPointOnSegment(circleCenter, p1, p2);
+  
+  // Calculate distance between circle center and closest point
+  const distance = circleCenter.distanceTo(closest);
+  
+  // Sum of radii
+  const totalRadius = circle.radius + capsule.radius;
+  
+  // Check if colliding
+  manifold.colliding = distance < totalRadius;
+  
+  if (manifold.colliding) {
+    // Calculate normal
+    if (distance > 0) {
+      manifold.normal = circleCenter.subtract(closest).normalize();
+    } else {
+      // If centers are at the same position, use a default normal
+      manifold.normal = new Vec2(1, 0);
+    }
+    
+    // Penetration depth
+    manifold.penetration = totalRadius - distance;
+    
+    // Contact point (on the edge of the circle)
+    manifold.contactPoint = circleCenter.subtract(manifold.normal.scale(circle.radius));
+  }
+  
+  return manifold;
+}
+
+// Renderer Class
+class Renderer {
+  constructor(canvasId, zoom) {
+    this.canvas = null;
+    this.ctx = null;
+    this.zoom = zoom || 20;
+    this.camera = new Vec2();
+    this.width = 600;
+    this.height = 400;
+    
+    // Setup canvas with error handling
+    this.setupCanvas(canvasId);
+  }
+  
+  setupCanvas(canvasId) {
+    try {
+      // Try to get existing canvas
+      this.canvas = document.getElementById(canvasId);
+      
+      // If canvas doesn't exist, create one
+      if (!this.canvas) {
+        this.canvas = document.createElement('canvas');
+        this.canvas.id = canvasId || 'simulationCanvas';
+        document.body.appendChild(this.canvas);
+      }
+      
+      this.canvas.width = this.width;
+      this.canvas.height = this.height;
+      this.ctx = this.canvas.getContext('2d');
+      
+      if (!this.ctx) {
+        console.error('Failed to get canvas context');
+        // Create fallback div to show error
+        const errorDiv = document.createElement('div');
+        errorDiv.style.width = this.width + 'px';
+        errorDiv.style.height = this.height + 'px';
+        errorDiv.style.border = '1px solid red';
+        errorDiv.style.display = 'flex';
+        errorDiv.style.alignItems = 'center';
+        errorDiv.style.justifyContent = 'center';
+        errorDiv.innerHTML = 'Canvas not supported in your browser';
+        this.canvas.parentNode.replaceChild(errorDiv, this.canvas);
+      }
+    } catch (e) {
+      console.error('Error setting up canvas:', e);
+    }
+  }
+
+  clear() {
+    if (!this.ctx) return;
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+  }
+
+  applyWorldTransform() {
+    if (!this.ctx) return;
+    this.ctx.save();
+    this.ctx.translate(this.canvas.width / 2, this.canvas.height / 2);
+    this.ctx.scale(this.zoom, -this.zoom);
+    this.ctx.translate(-this.camera.x, -this.camera.y);
+  }
+
+  setCamera(x, y) {
+    this.camera.set(x, y);
+  }
+
+  restoreWorldTransform() {
+    if (!this.ctx) return;
+    this.ctx.restore();
+  }
+
+  drawGrid() {
+    if (!this.ctx) return;
+    this.ctx.save();
+    this.ctx.strokeStyle = "lightgray";
+    this.ctx.lineWidth = 0.02;
+
+    for (let x = -15; x <= 15; x++) {
+      this.drawLine(x, -15, x, 15);
+    }
+
+    for (let y = -15; y <= 15; y++) {
+      this.drawLine(-15, y, 15, y);
+    }
+    this.ctx.strokeStyle = "black";
+    this.drawLine(-15, 0, 15, 0);
+    this.drawLine(0, -15, 0, 15);
+    this.ctx.restore();
+  }
+
+  drawLine(x1, y1, x2, y2) {
+    if (!this.ctx) return;
+    this.ctx.beginPath();
+    this.ctx.moveTo(x1, y1);
+    this.ctx.lineTo(x2, y2);
+    this.ctx.stroke();
+  }
+
+  drawShape(shape) {
+    if (!this.ctx) return;
+    this.ctx.save();
+    this.ctx.translate(shape.position.x, shape.position.y);
+    this.ctx.rotate(shape.rotation);
+    switch (shape.type) {
+      case Shape.Circle:
+        this.drawCircle(shape);
+        break;
+      case Shape.Capsule:
+        this.drawCapsule(shape);
+        break;
+      default:
+    }
+    this.ctx.restore();
+  }
+
+  drawCircle(circle) {
+    if (!this.ctx) return;
+    this.ctx.beginPath();
+    this.ctx.arc(0, 0, circle.radius, 0, Math.PI * 2);
+    this.ctx.strokeStyle = "red";
+    this.ctx.lineWidth = 0.05;
+    this.ctx.stroke();
+  }
+
+  drawCapsule(capsule) {
+    if (!this.ctx) return;
+    const p1 = capsule.p1;
+    const p2 = capsule.p2;
+    const r = capsule.radius;
+    
+    // Draw capsule spine
+    this.ctx.beginPath();
+    this.ctx.moveTo(p1.x, p1.y);
+    this.ctx.lineTo(p2.x, p2.y);
+    this.ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
+    this.ctx.lineWidth = 0.05;
+    this.ctx.stroke();
+    
+    // Draw capsule outline
+    this.ctx.beginPath();
+    this.ctx.lineWidth = 0.05;
+    this.ctx.strokeStyle = "green";
+    
+    // Draw top and bottom lines
+    const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+    const perpX = Math.sin(angle) * r;
+    const perpY = -Math.cos(angle) * r;
+    
+    this.ctx.moveTo(p1.x + perpX, p1.y + perpY);
+    this.ctx.lineTo(p2.x + perpX, p2.y + perpY);
+    
+    this.ctx.moveTo(p1.x - perpX, p1.y - perpY);
+    this.ctx.lineTo(p2.x - perpX, p2.y - perpY);
+    
+    // Draw end caps
+    this.ctx.arc(p1.x, p1.y, r, angle - Math.PI/2, angle + Math.PI/2, true);
+    this.ctx.moveTo(p2.x - perpX, p2.y - perpY);
+    this.ctx.arc(p2.x, p2.y, r, angle - Math.PI/2, angle + Math.PI/2);
+    
+    this.ctx.stroke();
+  }
+  
+  drawManifold(manifold) {
+    if (!this.ctx || !manifold.colliding) return;
+    
+    // Draw contact point
+    this.ctx.beginPath();
+    this.ctx.arc(manifold.contactPoint.x, manifold.contactPoint.y, 0.15, 0, Math.PI * 2);
+    this.ctx.fillStyle = "purple";
+    this.ctx.fill();
+    
+    // Draw collision normal
+    const normalEnd = manifold.contactPoint.add(manifold.normal.scale(manifold.penetration));
+    this.ctx.beginPath();
+    this.ctx.moveTo(manifold.contactPoint.x, manifold.contactPoint.y);
+    this.ctx.lineTo(normalEnd.x, normalEnd.y);
+    this.ctx.strokeStyle = "blue";
+    this.ctx.lineWidth = 0.1;
+    this.ctx.stroke();
+    
+    // Draw penetration depth text
+    this.ctx.save();
+    this.ctx.scale(1/this.zoom, -1/this.zoom);
+    this.ctx.font = "14px Arial";
+    this.ctx.fillStyle = "black";
+    const textX = manifold.contactPoint.x * this.zoom;
+    const textY = -manifold.contactPoint.y * this.zoom - 20;
+    this.ctx.fillText(`Depth: ${manifold.penetration.toFixed(2)}`, textX, textY);
+    this.ctx.restore();
+  }
+  
+  drawClosestPoint(circle, capsule) {
+    if (!this.ctx) return;
+    const circleCenter = circle.getWorldPosition();
+    const p1 = capsule.getWorldPosition1();
+    const p2 = capsule.getWorldPosition2();
+    const closest = closestPointOnSegment(circleCenter, p1, p2);
+    
+    // Draw closest point
+    this.ctx.beginPath();
+    this.ctx.arc(closest.x, closest.y, 0.1, 0, Math.PI * 2);
+    this.ctx.fillStyle = "orange";
+    this.ctx.fill();
+    
+    // Draw line from circle to closest point
+    this.ctx.beginPath();
+    this.ctx.moveTo(circleCenter.x, circleCenter.y);
+    this.ctx.lineTo(closest.x, closest.y);
+    this.ctx.strokeStyle = "orange";
+    this.ctx.lineWidth = 0.05;
+    this.ctx.setLineDash([0.2, 0.2]);
+    this.ctx.stroke();
+    this.ctx.setLineDash([]);
+  }
+  
+  drawCollisionStatus(manifold) {
+    if (!this.ctx) return;
+    this.ctx.save();
+    this.ctx.scale(1/this.zoom, -1/this.zoom);
+    this.ctx.font = "16px Arial";
+    this.ctx.fillStyle = manifold.colliding ? "red" : "green";
+    const status = manifold.colliding ? "COLLISION DETECTED" : "NO COLLISION";
+    this.ctx.fillText(status, -70, -this.canvas.height/2 + 30);
+    this.ctx.restore();
+  }
+}
+
+// Input Handling
+class Input {
+  constructor() {
+    this.keys = {};
+    this.mousePosition = new Vec2();
+    this.mouseDown = false;
+    this.selectedObject = null;
+    this.dragging = false;
+    this.rotationMode = false;
+    this.initialAngle = 0;
+  }
+  
+  init(canvas, renderer, shapes) {
+    if (!canvas) return;
+    
+    document.addEventListener('keydown', (e) => {
+      this.keys[e.key] = true;
+      
+      // Toggle rotation mode with 'r' key
+      if (e.key === 'r') {
+        this.rotationMode = !this.rotationMode;
+        
+        // Update status message
+        const statusElement = document.getElementById('status-message');
+        if (statusElement) {
+          statusElement.textContent = this.rotationMode ? 
+            'Rotation Mode: ON (drag to rotate)' : 
+            'Rotation Mode: OFF (drag to move)';
+        }
+      }
+    });
+    
+    document.addEventListener('keyup', (e) => {
+      this.keys[e.key] = false;
+    });
+    
+    canvas.addEventListener('mousedown', (e) => {
+      this.mouseDown = true;
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = ((e.clientX - rect.left) - canvas.width / 2) / renderer.zoom + renderer.camera.x;
+      const mouseY = -((e.clientY - rect.top) - canvas.height / 2) / renderer.zoom + renderer.camera.y;
+      this.mousePosition.set(mouseX, mouseY);
+      
+      // Check if mouse is over any shape
+      for (const shape of shapes) {
+        if (this.isPointOverShape(this.mousePosition, shape)) {
+          this.selectedObject = shape;
+          this.dragging = true;
+          
+          if (this.rotationMode && shape.type === Shape.Capsule) {
+            // Store initial angle for rotation
+            this.initialAngle = Math.atan2(
+              this.mousePosition.y - shape.position.y,
+              this.mousePosition.x - shape.position.x
+            ) - shape.rotation;
+          }
+          
+          break;
+        }
+      }
+    });
+    
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = ((e.clientX - rect.left) - canvas.width / 2) / renderer.zoom + renderer.camera.x;
+      const mouseY = -((e.clientY - rect.top) - canvas.height / 2) / renderer.zoom + renderer.camera.y;
+      
+      if (this.dragging && this.selectedObject) {
+        if (this.rotationMode) {
+          // Rotate object
+          if (this.selectedObject.type === Shape.Capsule) {
+            const currentAngle = Math.atan2(
+              mouseY - this.selectedObject.position.y,
+              mouseX - this.selectedObject.position.x
+            );
+            this.selectedObject.rotation = currentAngle - this.initialAngle;
+          }
+        } else {
+          // Move object
+          this.selectedObject.setPosition(mouseX, mouseY);
+        }
+      }
+      
+      this.mousePosition.set(mouseX, mouseY);
+    });
+    
+    canvas.addEventListener('mouseup', () => {
+      this.mouseDown = false;
+      this.dragging = false;
+    });
+    
+    canvas.addEventListener('mouseleave', () => {
+      this.mouseDown = false;
+      this.dragging = false;
+    });
+  }
+  
+  isPointOverShape(point, shape) {
+    if (shape.type === Shape.Circle) {
+      return point.distanceTo(shape.position) <= shape.radius;
+    } else if (shape.type === Shape.Capsule) {
+      const p1 = shape.getWorldPosition1();
+      const p2 = shape.getWorldPosition2();
+      const closest = closestPointOnSegment(point, p1, p2);
+      return point.distanceTo(closest) <= shape.radius;
+    }
+    return false;
+  }
+}
+
+// Create complete HTML structure
+function createSimulationHTML() {
+  // Create container
+  const container = document.createElement('div');
+  container.style.position = 'relative';
+  container.style.display = 'flex';
+  container.style.flexDirection = 'column';
+  container.style.alignItems = 'center';
+  container.style.maxWidth = '800px';
+  container.style.margin = '0 auto';
+  container.style.fontFamily = 'Arial, sans-serif';
+  
+  // Create title
+  const title = document.createElement('h2');
+  title.textContent = 'Circle-Capsule Collision Detection';
+  container.appendChild(title);
+  
+  // Create canvas
+  const canvas = document.createElement('canvas');
+  canvas.id = 'simulationCanvas';
+  canvas.width = 600;
+  canvas.height = 400;
+  canvas.style.border = '1px solid #ccc';
+  container.appendChild(canvas);
+  
+  // Create status message
+  const statusMessage = document.createElement('div');
+  statusMessage.id = 'status-message';
+  statusMessage.textContent = 'Rotation Mode: OFF (drag to move)';
+  statusMessage.style.margin = '10px 0';
+  statusMessage.style.fontWeight = 'bold';
+  container.appendChild(statusMessage);
+  
+  // Create info box
+  const infoBox = document.createElement('div');
+  infoBox.style.backgroundColor = '#f8f8f8';
+  infoBox.style.border = '1px solid #ddd';
+  infoBox.style.padding = '15px';
+  infoBox.style.margin = '10px 0';
+  infoBox.style.borderRadius = '5px';
+  infoBox.style.width = '100%';
+  
+  infoBox.innerHTML = `
+    <h3>Instructions:</h3>
+    <ul>
+      <li><strong>Click and drag</strong> to move objects</li>
+      <li>Press <strong>'r'</strong> to toggle between move and rotation modes</li>
+      <li>The <strong>red circle</strong> and <strong>green capsule</strong> can be moved</li>
+      <li>The <strong>orange dot</strong> shows the closest point on the capsule spine</li>
+      <li>The <strong>purple dot</strong> shows the contact point when colliding</li>
+      <li>The <strong>blue line</strong> shows the collision normal and penetration depth</li>
+    </ul>
+    <h3>Collision Detection:</h3>
+    <p>Collision is detected by finding the closest point on the capsule's spine segment to the circle's center,
+    and comparing the distance to the sum of both radii.</p>
+  `;
+  
+  container.appendChild(infoBox);
+  
+  // Add container to document
+  document.body.appendChild(container);
+  
+  return canvas;
+}
+
+// Main function
+function initSimulation() {
+  // Create HTML structure and get canvas
+  const canvas = createSimulationHTML();
+  
+  // Create renderer with error handling
+  const renderer = new Renderer('simulationCanvas', 20);
+  renderer.setCamera(0, 0);
+  
+  // Create shapes
+  const circle = new Circle(2);
+  circle.setPosition(2, 0);
+  
+  const capsule = new Capsule(4, 1);
+  capsule.setPosition(-4, 0);
+  
+  const shapes = [circle, capsule];
+  
+  // Initialize input
+  const input = new Input();
+  input.init(canvas, renderer, shapes);
+  
+  // Animation function
+  function animate() {
+    renderer.clear();
+    renderer.applyWorldTransform();
+    renderer.drawGrid();
+    
+    // Draw shapes
+    renderer.drawShape(circle);
+    renderer.drawShape(capsule);
+    
+    // Check for collision
+    const manifold = testCircleCapsule(circle, capsule);
+    
+    // Draw collision visualization
+    renderer.drawClosestPoint(circle, capsule);
+    renderer.drawManifold(manifold);
+    renderer.drawCollisionStatus(manifold);
+    
+    renderer.restoreWorldTransform();
+    
+    requestAnimationFrame(animate);
+  }
+  
+  // Start animation
+  animate();
+}
+
+// Initialize everything when DOM is fully loaded
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initSimulation);
+} else {
+  initSimulation();
+}</script>
+          </body>
+        </html>
+        

@@ -57,3 +57,4 @@ class Quiz(models.Model):
 
     def __str__(self):
         return f"Quiz for {self.project.name}"
+    

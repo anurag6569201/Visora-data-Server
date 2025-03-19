@@ -68,28 +68,52 @@ class UploadProjectAPIView(APIView):
         return Response({"message": "Project uploaded successfully"}, status=status.HTTP_201_CREATED)
 
 def list_projects(request):
-    projects = Project.objects.all()
-    projects_data = []
 
-    for project in projects:
-        folder_path = os.path.join(settings.MEDIA_ROOT, "projects", project.get_folder_name())
-        combined_file_path = os.path.join(folder_path, "combined.html")
+    auth_header = request.headers.get("Authorization")
+    if auth_header:
+        projects = Project.objects.filter(username=auth_header)
+        projects_data = []
+        for project in projects:
+            folder_path = os.path.join(settings.MEDIA_ROOT, "projects", project.get_folder_name())
+            combined_file_path = os.path.join(folder_path, "combined.html")
 
-        if os.path.exists(combined_file_path):
-            try:
-                with open(combined_file_path, "r", encoding="utf-8") as f:
-                    combined_html = f.read()
-            except Exception as e:
-                print(f"Error reading combined.html: {e}")
+            if os.path.exists(combined_file_path):
+                try:
+                    with open(combined_file_path, "r", encoding="utf-8") as f:
+                        combined_html = f.read()
+                except Exception as e:
+                    print(f"Error reading combined.html: {e}")
+                    combined_html = ""
+            else:
                 combined_html = ""
-        else:
-            combined_html = ""
 
-        projects_data.append({
-            "id": project.id,
-            "name": project.name,
-            "combined_html": combined_html,  
-        })
+            projects_data.append({
+                "id": project.id,
+                "name": project.name,
+                "combined_html": combined_html,  
+            })
+    else:
+        projects = Project.objects.all()
+        projects_data = []
+        for project in projects:
+            folder_path = os.path.join(settings.MEDIA_ROOT, "projects", project.get_folder_name())
+            combined_file_path = os.path.join(folder_path, "combined.html")
+
+            if os.path.exists(combined_file_path):
+                try:
+                    with open(combined_file_path, "r", encoding="utf-8") as f:
+                        combined_html = f.read()
+                except Exception as e:
+                    print(f"Error reading combined.html: {e}")
+                    combined_html = ""
+            else:
+                combined_html = ""
+
+            projects_data.append({
+                "id": project.id,
+                "name": project.name,
+                "combined_html": combined_html,  
+            })
 
     return JsonResponse({"projects": projects_data})
 
