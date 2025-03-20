@@ -219,12 +219,15 @@ class RegisterUserNameDbView(View):
         try:
             data = json.loads(request.body.decode("utf-8"))  # Corrected
             username = data.get("username")
+            profile_picture = data.get("profile_picture")
+            userid = data.get("userid")
+            role = data.get("role")
             email = data.get("email")
 
             if UserNameDb.objects.filter(username=username).exists():
                 return JsonResponse({"error": "User already exists in Visiora-Data."}, status=400)
 
-            user = UserNameDb.objects.create(username=username, email=email)
+            user = UserNameDb.objects.create(username=username, email=email,profile_picture=profile_picture,userid=userid,role=role)
             user.save()
 
             return JsonResponse({"message": "User created in Visiora-Data."}, status=201)

@@ -6,6 +6,9 @@ from django.contrib.auth.models import User
 
 class UserNameDb(models.Model):
     username = models.CharField(max_length=100)
+    profile_picture = models.CharField(max_length=100)
+    userid = models.CharField(max_length=100)
+    role = models.CharField(max_length=100)
     email = models.CharField(max_length=100, unique=False,default='visora@gmail.com')
 
 class Project(models.Model):
