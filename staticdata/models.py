@@ -2,8 +2,9 @@ import os
 import uuid
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils.timezone import now
 
-
+from datetime import timedelta
 class UserNameDb(models.Model):
     username = models.CharField(max_length=100)
     profile_picture = models.CharField(max_length=100)
@@ -61,3 +62,17 @@ class Quiz(models.Model):
     def __str__(self):
         return f"Quiz for {self.project.name}"
     
+
+
+
+class Leaderboard(models.Model):
+    user = models.ForeignKey(UserNameDb, on_delete=models.CASCADE)
+    score = models.IntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.score}"
+    
+    def check_time_gap(self):
+        """Check if the last update was 24 hours ago or more."""
+        return now() - self.updated_at >= timedelta(seconds=5)

@@ -1,11 +1,12 @@
 from django.urls import path,include
-from .views import UploadProjectAPIView,CommentCreateView,LikeToggleView,RegisterUserNameDbView,QuizViewSet
+from .views import UploadProjectAPIView,CommentCreateView,LikeToggleView,RegisterUserNameDbView,QuizViewSet,ScoreViewSet
 from staticdata import views
 from rest_framework.routers import DefaultRouter
 
 app_name = "staticdata"
 router = DefaultRouter()
 router.register(r'quizzes', QuizViewSet)
+router.register(r'scores', ScoreViewSet)
 
 urlpatterns = [
     path("username/",RegisterUserNameDbView.as_view(), name="usernamedb"),

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Project, ProjectFile,ProjectLike,ProjectComment,Quiz
+from .models import Project, ProjectFile,ProjectLike,ProjectComment,Quiz,Leaderboard
 
 class ProjectFileSerializer(serializers.ModelSerializer):
     class Meta:
@@ -37,3 +37,13 @@ class QuizSerializer(serializers.ModelSerializer):
     class Meta:
         model = Quiz
         fields = ['id', 'project', 'data']
+
+
+class ScoreSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source="user.username")  # Extract username
+    userpic = serializers.CharField(source="user.profile_picture")  # Extract username
+    userid = serializers.IntegerField(source="user.userid")  # Extract user ID
+
+    class Meta:
+        model = Leaderboard
+        fields = ['id', 'username','userpic','userid', 'score', 'updated_at']

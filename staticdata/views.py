@@ -10,8 +10,8 @@ from django.views import View
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-from .serializers import ProjectCommentSerializer, ProjectLikeSerializer,ProjectSerializer
-from .models import Project, ProjectFile,ProjectComment,ProjectLike,UserNameDb
+from .serializers import ProjectCommentSerializer, ProjectLikeSerializer,ProjectSerializer,ScoreSerializer
+from .models import Project, ProjectFile,ProjectComment,ProjectLike,UserNameDb,Leaderboard
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import json
@@ -19,6 +19,11 @@ from django.conf import settings
 from rest_framework.permissions import BasePermission
 from rest_framework.decorators import api_view
 from rest_framework import generics, permissions
+from rest_framework import serializers, viewsets, pagination, filters
+
+
+
+from staticdata.score_calculations import likeScoreCalculation
 
 class UploadProjectAPIView(APIView):
     def post(self, request):
@@ -32,10 +37,9 @@ class UploadProjectAPIView(APIView):
 
         if not all([name, description, token]) or not files:
             return Response({"error": "Missing required fields"}, status=status.HTTP_400_BAD_REQUEST)
-
         # Create or get the project
         project, created = Project.objects.get_or_create(name=name, description=description, token=token,email=email,username=username)
-
+        likeScoreCalculation(project.username)
         html_content, css_content, js_content = "", "", ""
 
         for file in files:
@@ -74,6 +78,7 @@ def list_projects(request):
         projects = Project.objects.filter(username=auth_header)
         projects_data = []
         for project in projects:
+            user = UserNameDb.objects.filter(username=project.username).first()
             folder_path = os.path.join(settings.MEDIA_ROOT, "projects", project.get_folder_name())
             combined_file_path = os.path.join(folder_path, "combined.html")
 
@@ -90,12 +95,16 @@ def list_projects(request):
             projects_data.append({
                 "id": project.id,
                 "name": project.name,
+                "username": user.username,
+                "profile_picture": user.profile_picture,
+                "userid": user.userid,
                 "combined_html": combined_html,  
             })
     else:
         projects = Project.objects.all()
         projects_data = []
         for project in projects:
+            user = UserNameDb.objects.filter(username=project.username).first()
             folder_path = os.path.join(settings.MEDIA_ROOT, "projects", project.get_folder_name())
             combined_file_path = os.path.join(folder_path, "combined.html")
 
@@ -112,6 +121,9 @@ def list_projects(request):
             projects_data.append({
                 "id": project.id,
                 "name": project.name,
+                "username": user.username,
+                "profile_picture": user.profile_picture,
+                "userid": user.userid,
                 "combined_html": combined_html,  
             })
 
@@ -153,6 +165,7 @@ class CommentCreateView(APIView):
             return JsonResponse({"error": "User not found"}, status=404)
 
         project = get_object_or_404(Project, id=project_id)
+        likeScoreCalculation(project.username)
         serializer = self.serializer_class(data=request.data)
 
         if serializer.is_valid():
@@ -180,7 +193,6 @@ class LikeToggleView(View):
 
         if not user:
             return JsonResponse({"error": "User not found"}, status=404)
-
         project = get_object_or_404(Project, id=project_id)
         total_likes = ProjectLike.objects.filter(project=project).count()
         is_liked = ProjectLike.objects.filter(username=user, project=project).exists()
@@ -190,7 +202,6 @@ class LikeToggleView(View):
     def post(self, request, project_id):
         """Toggle like status using get_or_create"""
         token = request.headers.get("Authorization")
-        print("Token received:", token)
 
         if not token:
             return JsonResponse({"error": "Unauthorized"}, status=401)
@@ -200,7 +211,7 @@ class LikeToggleView(View):
             return JsonResponse({"error": "User not found"}, status=404)
 
         project = get_object_or_404(Project, id=project_id)
-
+        likeScoreCalculation(project.username)
         like, created = ProjectLike.objects.get_or_create(username=user, project=project)
 
         if not created:
@@ -228,6 +239,9 @@ class RegisterUserNameDbView(View):
                 return JsonResponse({"error": "User already exists in Visiora-Data."}, status=400)
 
             user = UserNameDb.objects.create(username=username, email=email,profile_picture=profile_picture,userid=userid,role=role)
+            user_instance = UserNameDb.objects.get(username=username)
+            leaderboard_entry, _ = Leaderboard.objects.get_or_create(user=user_instance)
+
             user.save()
 
             return JsonResponse({"message": "User created in Visiora-Data."}, status=201)
@@ -243,3 +257,20 @@ class QuizViewSet(viewsets.ModelViewSet):
     queryset = Quiz.objects.all()
     serializer_class = QuizSerializer
     lookup_field = 'id'
+
+
+
+
+class ScorePagination(pagination.PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+# ViewSet
+class ScoreViewSet(viewsets.ModelViewSet):
+    queryset = Leaderboard.objects.all().order_by('-score')
+    serializer_class = ScoreSerializer
+    pagination_class = ScorePagination
+    filter_backends = [filters.OrderingFilter]
+    ordering_fields = ['score', 'updated_at']
+
