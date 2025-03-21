@@ -5,7 +5,6 @@ from rest_framework.routers import DefaultRouter
 
 app_name = "staticdata"
 router = DefaultRouter()
-router.register(r'quizzes', QuizViewSet)
 router.register(r'scores', ScoreViewSet)
 
 urlpatterns = [
@@ -17,4 +16,5 @@ urlpatterns = [
     path("projects/<uuid:project_id>/like/", LikeToggleView.as_view(), name="project-like"),
 
     path('api/', include(router.urls)),
+    path("quizzes/<uuid:project_id>/", QuizViewSet.as_view({'get': 'list'})),
 ]

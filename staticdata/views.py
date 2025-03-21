@@ -249,18 +249,24 @@ class RegisterUserNameDbView(View):
         except json.JSONDecodeError:
             return JsonResponse({"error": "Invalid JSON format"}, status=400)
         
-
+import uuid
 from rest_framework import viewsets
 from .models import Quiz
 from .serializers import QuizSerializer
 class QuizViewSet(viewsets.ModelViewSet):
     queryset = Quiz.objects.all()
     serializer_class = QuizSerializer
-    lookup_field = 'id'
 
-
-
-
+    def list(self, request, project_id=None):
+        """Fetch all quizzes for a specific project"""
+        if project_id:
+            project = get_object_or_404(Project, id=project_id)
+            quizzes = Quiz.objects.filter(project=project)
+            serializer = self.serializer_class(quizzes, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return super().list(request)
+    
+    
 class ScorePagination(pagination.PageNumberPagination):
     page_size = 10
     page_size_query_param = 'page_size'
