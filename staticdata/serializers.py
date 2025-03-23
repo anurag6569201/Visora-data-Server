@@ -47,3 +47,23 @@ class ScoreSerializer(serializers.ModelSerializer):
     class Meta:
         model = Leaderboard
         fields = ['id', 'username','userpic','userid', 'score', 'updated_at']
+
+
+
+from .models import Project, Quiz, Theory, Examples
+
+
+class QuizSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Quiz
+        fields = '__all__'
+
+class TheorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Theory
+        fields = '__all__'
+
+class ExamplesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Examples
+        fields = '__all__'

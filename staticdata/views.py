@@ -280,3 +280,77 @@ class ScoreViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ['score', 'updated_at']
 
+
+
+
+from django.db.models import Q
+from .models import Project, Quiz, Theory, Examples
+from .serializers import ProjectSerializer, QuizSerializer, TheorySerializer, ExamplesSerializer
+
+class ProjectSearchAPI(generics.ListAPIView):
+    serializer_class = ProjectSerializer
+
+    def get_queryset(self):
+        query = self.request.query_params.get('query', '')
+        return Project.objects.filter(
+            Q(name__icontains=query) | 
+            Q(description__icontains=query)
+        )[:10]
+
+class ProjectDetailAPI(generics.RetrieveAPIView):
+    queryset = Project.objects.all()
+    serializer_class = ProjectSerializer
+    lookup_field = 'id'
+
+class ProjectMaterialsAPI(generics.GenericAPIView):
+    def get(self, request, project_id, material_type):
+        model_map = {
+            'quizzes': Quiz,
+            'theories': Theory,
+            'examples': Examples
+        }
+        model = model_map.get(material_type)
+        if not model:
+            return Response({'error': 'Invalid material type'}, status=400)
+        
+        materials = model.objects.filter(project__id=project_id)
+        serializer = {
+            'quizzes': QuizSerializer,
+            'theories': TheorySerializer,
+            'examples': ExamplesSerializer
+        }[material_type]
+        
+        return Response(serializer(materials, many=True).data)
+
+@api_view(['POST'])
+def generate_ai_content(request, project_id, content_type):
+    # Implement your AI generation logic here
+    # This could connect to OpenAI API or your custom model
+    return Response({'status': 'AI generation endpoint', 'project_id': project_id, 'type': content_type})
+
+
+
+@api_view(['POST'])
+def generate_ai_content(request, project_id, content_type):
+    try:
+        project = Project.objects.get(id=project_id)
+        # Implement actual AI generation here using OpenAI or other services
+        # Example pseudo-code:
+        """
+        prompt = f"Generate {content_type} for project: {project.name}\n{project.description}"
+        response = openai.Completion.create(
+            engine="text-davinci-003",
+            prompt=prompt,
+            max_tokens=1000
+        )
+        
+        # Save to appropriate model
+        if content_type == 'quiz':
+            Quiz.objects.create(
+                project=project,
+                data=format_quiz_data(response.choices[0].text)
+            )
+        """
+        return Response({'status': 'success', 'generated': content_type})
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)

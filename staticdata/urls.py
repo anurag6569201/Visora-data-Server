@@ -2,6 +2,8 @@ from django.urls import path,include
 from .views import UploadProjectAPIView,CommentCreateView,LikeToggleView,RegisterUserNameDbView,QuizViewSet,ScoreViewSet
 from staticdata import views
 from rest_framework.routers import DefaultRouter
+from .views import (ProjectSearchAPI, ProjectDetailAPI, 
+                   ProjectMaterialsAPI, generate_ai_content)
 
 app_name = "staticdata"
 router = DefaultRouter()
@@ -17,4 +19,11 @@ urlpatterns = [
 
     path('api/', include(router.urls)),
     path("quizzes/<uuid:project_id>/", QuizViewSet.as_view({'get': 'list'})),
+
+    path('materials/search/', ProjectSearchAPI.as_view(), name='project-search'),
+    path('materials/<uuid:id>/', ProjectDetailAPI.as_view(), name='project-detail'),
+    path('materials/<uuid:project_id>/<str:material_type>/', 
+         ProjectMaterialsAPI.as_view(), name='project-materials'),
+    path('<uuid:project_id>/generate/<str:content_type>/', 
+         generate_ai_content, name='generate-content'),
 ]

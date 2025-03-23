@@ -63,7 +63,22 @@ class Quiz(models.Model):
         return f"Quiz for {self.project.name}"
     
 
+class Theory(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="theories")
+    data = models.JSONField()
 
+    def __str__(self):
+        return f"Theory for {self.project.name}"
+    
+
+class Examples(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="examples")
+    data = models.JSONField()
+
+    def __str__(self):
+        return f"Examples for {self.project.name}"
+    
+    
 
 class Leaderboard(models.Model):
     user = models.ForeignKey(UserNameDb, on_delete=models.CASCADE)
@@ -76,3 +91,5 @@ class Leaderboard(models.Model):
     def check_time_gap(self):
         """Check if the last update was 24 hours ago or more."""
         return now() - self.updated_at >= timedelta(seconds=5)
+    
+
