@@ -1,5 +1,5 @@
 from django.urls import path,include
-from .views import UploadProjectAPIView,CommentCreateView,LikeToggleView,RegisterUserNameDbView,QuizViewSet,ScoreViewSet
+from .views import UploadProjectAPIView,CommentCreateView,LikeToggleView,RegisterUserNameDbView,QuizViewSet,ScoreViewSet,TheoryViewSet
 from staticdata import views
 from rest_framework.routers import DefaultRouter
 from .views import (ProjectSearchAPI, ProjectDetailAPI, 
@@ -19,6 +19,7 @@ urlpatterns = [
 
     path('api/', include(router.urls)),
     path("quizzes/<uuid:project_id>/", QuizViewSet.as_view({'get': 'list'})),
+    path("theory/<uuid:project_id>/", TheoryViewSet.as_view({'get': 'list'})),
 
     path('materials/search/', ProjectSearchAPI.as_view(), name='project-search'),
     path('materials/<uuid:id>/', ProjectDetailAPI.as_view(), name='project-detail'),

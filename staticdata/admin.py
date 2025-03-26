@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import ProjectFile,Project,ProjectLike,ProjectComment,UserNameDb,Quiz,Leaderboard
+from .models import ProjectFile,Project,ProjectLike,ProjectComment,UserNameDb,Quiz,Leaderboard,Examples,Theory
 
 
 admin.site.register(ProjectFile)
@@ -9,3 +9,5 @@ admin.site.register(ProjectComment)
 admin.site.register(UserNameDb)
 admin.site.register(Leaderboard)
 admin.site.register(Quiz)
+admin.site.register(Theory)
+admin.site.register(Examples)

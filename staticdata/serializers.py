@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Project, ProjectFile,ProjectLike,ProjectComment,Quiz,Leaderboard
+from .models import Project, ProjectFile,ProjectLike,ProjectComment,Quiz,Leaderboard,Theory,Examples
 
 class ProjectFileSerializer(serializers.ModelSerializer):
     class Meta:
@@ -38,6 +38,18 @@ class QuizSerializer(serializers.ModelSerializer):
         model = Quiz
         fields = ['id', 'project', 'data']
 
+class TheorySerializer(serializers.ModelSerializer):
+    project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all())
+
+    class Meta:
+        model = Quiz
+        fields = ['id', 'project', 'data']
+
+        
+class ExamplesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Examples
+        fields = '__all__'
 
 class ScoreSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source="user.username")  # Extract username
@@ -47,23 +59,3 @@ class ScoreSerializer(serializers.ModelSerializer):
     class Meta:
         model = Leaderboard
         fields = ['id', 'username','userpic','userid', 'score', 'updated_at']
-
-
-
-from .models import Project, Quiz, Theory, Examples
-
-
-class QuizSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Quiz
-        fields = '__all__'
-
-class TheorySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Theory
-        fields = '__all__'
-
-class ExamplesSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Examples
-        fields = '__all__'

@@ -10,8 +10,8 @@ from django.views import View
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-from .serializers import ProjectCommentSerializer, ProjectLikeSerializer,ProjectSerializer,ScoreSerializer
-from .models import Project, ProjectFile,ProjectComment,ProjectLike,UserNameDb,Leaderboard
+from .serializers import ProjectCommentSerializer, ProjectLikeSerializer,ProjectSerializer,ScoreSerializer,TheorySerializer
+from .models import Project, ProjectFile,ProjectComment,ProjectLike,UserNameDb,Leaderboard,Theory
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import json
@@ -263,6 +263,20 @@ class QuizViewSet(viewsets.ModelViewSet):
             project = get_object_or_404(Project, id=project_id)
             quizzes = Quiz.objects.filter(project=project)
             serializer = self.serializer_class(quizzes, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return super().list(request)
+    
+
+class TheoryViewSet(viewsets.ModelViewSet):
+    queryset = Theory.objects.all()
+    serializer_class = TheorySerializer
+
+    def list(self, request, project_id=None):
+        """Fetch all theory for a specific project"""
+        if project_id:
+            project = get_object_or_404(Project, id=project_id)
+            theory = Theory.objects.filter(project=project)
+            serializer = self.serializer_class(theory, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         return super().list(request)
     
