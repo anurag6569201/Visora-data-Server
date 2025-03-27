@@ -20,6 +20,10 @@ class Project(models.Model):
     username = models.CharField(max_length=100, unique=False,default='visora')
     email = models.CharField(max_length=100, unique=False,default='visora@gmail.com')
 
+    tabname = models.CharField(max_length=100, unique=False,default='tab')
+    gradename = models.CharField(max_length=100, unique=False,default='tab')
+    subjectname = models.CharField(max_length=100, unique=False,default='tab')
+
     def get_folder_name(self):
         sanitized_name = self.name.replace(" ", "_")
         return f"{sanitized_name}_{self.token[:7]}"

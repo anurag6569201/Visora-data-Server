@@ -29,6 +29,9 @@ class UploadProjectAPIView(APIView):
     def post(self, request):
 
         name = request.data.get("project_name")
+        tabname = request.data.get("project_tab_name")
+        gradename = request.data.get("project_grade_name")
+        subjectname = request.data.get("project_subject_name")
         description = request.data.get("project_description")
         token = request.data.get("token")
         username = request.data.get("username")
@@ -38,7 +41,7 @@ class UploadProjectAPIView(APIView):
         if not all([name, description, token]) or not files:
             return Response({"error": "Missing required fields"}, status=status.HTTP_400_BAD_REQUEST)
         # Create or get the project
-        project, created = Project.objects.get_or_create(name=name, description=description, token=token,email=email,username=username)
+        project, created = Project.objects.get_or_create(name=name, description=description, token=token,email=email,username=username,tabname=tabname,gradename=gradename,subjectname=subjectname)
         html_content, css_content, js_content = "", "", ""
 
         for file in files:
@@ -101,7 +104,10 @@ def list_projects(request):
                 "combined_html": combined_html,  
             })
     else:
-        projects = Project.objects.all()
+        selected_tab = request.GET.get('selectedTab', None)
+        grade = request.GET.get('grade', None)
+        subject = request.GET.get('subject', None)
+        projects = Project.objects.filter(tabname=selected_tab,gradename=grade,subjectname=subject)
         projects_data = []
         for project in projects:
             user = UserNameDb.objects.filter(username=project.username).first()
