@@ -6,7 +6,7 @@ from rest_framework.decorators import api_view
 import google.generativeai as genai
 import json
 import os
-from staticdata.models import Project,UserNameDb
+from staticdata.models import Project
 from django.core.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import permission_classes
@@ -67,7 +67,7 @@ def chatbot_response(request):
         style = """
         <style>
         *::-webkit-scrollbar {
-            width: 10px !important;
+            width: 8px !important;
         }
         *::-webkit-scrollbar-track {
             background-color: #121212;
@@ -78,26 +78,11 @@ def chatbot_response(request):
         </style>
         """
         html_content = f"{style}{html_content}"
-        print(html_content)
-        userdetails = UserNameDb.objects.get(username=username)
-        iframe = IframeResponse.objects.create(content=html_content, user=userdetails, project=project)
-        iframe_url = request.build_absolute_uri(f'/api/chatbot/iframe/{iframe.id}/')
-
-        return JsonResponse({'html': html_content, 'iframe_url': iframe_url})
-
+        return JsonResponse({
+            'html': html_content, 
+        })
     except json.JSONDecodeError:
         return JsonResponse({"error": "Invalid JSON format"}, status=400)
     except Exception as e:
         logger.error(f"Chatbot error: {str(e)}", exc_info=True)
         return JsonResponse({"error": "Assistant is currently unavailable. Try again later."}, status=500)
-
-
-from django.http import HttpResponse
-from .models import IframeResponse
-
-def serve_iframe(request, response_id):
-    try:
-        iframe = IframeResponse.objects.get(id=response_id)
-        return HttpResponse(iframe.content, content_type='text/html')
-    except IframeResponse.DoesNotExist:
-        return HttpResponse("Content not found", status=404)
