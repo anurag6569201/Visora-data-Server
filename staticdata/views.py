@@ -39,7 +39,6 @@ class UploadProjectAPIView(APIView):
             return Response({"error": "Missing required fields"}, status=status.HTTP_400_BAD_REQUEST)
         # Create or get the project
         project, created = Project.objects.get_or_create(name=name, description=description, token=token,email=email,username=username)
-        likeScoreCalculation(project.username)
         html_content, css_content, js_content = "", "", ""
 
         for file in files:
@@ -68,6 +67,7 @@ class UploadProjectAPIView(APIView):
         # Save the combined file to the server
         combined_file_path = os.path.join("projects", project.get_folder_name(), "combined.html")
         ProjectFile.objects.create(project=project, file=ContentFile(combined_html.encode("utf-8"), name="combined.html"))
+        likeScoreCalculation(project.username)
 
         return Response({"message": "Project uploaded successfully"}, status=status.HTTP_201_CREATED)
 
@@ -165,11 +165,11 @@ class CommentCreateView(APIView):
             return JsonResponse({"error": "User not found"}, status=404)
 
         project = get_object_or_404(Project, id=project_id)
-        likeScoreCalculation(project.username)
         serializer = self.serializer_class(data=request.data)
 
         if serializer.is_valid():
             serializer.save(username=user, project=project)  # Save user instance
+            likeScoreCalculation(project.username)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -211,7 +211,6 @@ class LikeToggleView(View):
             return JsonResponse({"error": "User not found"}, status=404)
 
         project = get_object_or_404(Project, id=project_id)
-        likeScoreCalculation(project.username)
         like, created = ProjectLike.objects.get_or_create(username=user, project=project)
 
         if not created:
@@ -221,6 +220,7 @@ class LikeToggleView(View):
             liked = True
 
         total_likes = ProjectLike.objects.filter(project=project).count()
+        likeScoreCalculation(project.username)
         return JsonResponse({"liked": liked, "likes_count": total_likes})
     
 

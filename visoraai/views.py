@@ -55,9 +55,10 @@ def chatbot_response(request):
         - Accessible semantic markup
         - Its should be interactive and educational friendly
         - Do NOT include <html> or <head> tags and ```html and not even animation name details and others just only the thing requested!
-        - use those colors background:#212529 and these for others #5823c8,#ffffff        
+        - use those colors background:#212529 and these for others #5823c8,#ffffff and dont use any other colors !!     
         - create mobile friendly only.
         - content should be vertical align top start and left and overflow-x hidden as well as mobile friendly screens only
+        - if any assessment is provided by you give their ans as well as explanation too.
         """
 
         response = model.generate_content(prompt)
@@ -77,6 +78,7 @@ def chatbot_response(request):
         </style>
         """
         html_content = f"{style}{html_content}"
+        print(html_content)
         userdetails = UserNameDb.objects.get(username=username)
         iframe = IframeResponse.objects.create(content=html_content, user=userdetails, project=project)
         iframe_url = request.build_absolute_uri(f'/api/chatbot/iframe/{iframe.id}/')
