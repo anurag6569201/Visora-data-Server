@@ -97,3 +97,12 @@ class Leaderboard(models.Model):
         return now() - self.updated_at >= timedelta(seconds=5)
     
 
+class Category(models.Model):
+    name = models.CharField(max_length=255, unique=False)
+    parent = models.ForeignKey(
+        'self', on_delete=models.CASCADE, null=True, blank=True, related_name='children'
+    )
+    category_name = models.CharField(max_length=100,blank=True,null=True)
+
+    def __str__(self):
+        return f"{self.name or '' } -> {self.category_name or ''}".strip()

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Project, ProjectFile,ProjectLike,ProjectComment,Quiz,Leaderboard,Theory,Examples
+from .models import Project, ProjectFile,ProjectLike,ProjectComment,Quiz,Leaderboard,Theory,Examples,Category
 
 class ProjectFileSerializer(serializers.ModelSerializer):
     class Meta:
@@ -59,3 +59,15 @@ class ScoreSerializer(serializers.ModelSerializer):
     class Meta:
         model = Leaderboard
         fields = ['id', 'username','userpic','userid', 'score', 'updated_at']
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    children = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Category
+        fields = ['name', 'children']
+
+    def get_children(self, obj):
+        children = obj.children.all()
+        return CategorySerializer(children, many=True).data

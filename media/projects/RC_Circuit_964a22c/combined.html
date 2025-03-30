@@ -1,15 +1,7 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RC Circuit Simulation - Corrected</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <style>
-        /* --- CSS remains the same as provided --- */
-        :root {
+
+        <html>
+          <head>
+            <style>:root {
             /* Color Palette */
             --bg-color: #f7f9fc;
             --card-bg: #ffffff;
@@ -211,10 +203,12 @@
             .simulation-wrapper { flex-direction: column; }
             .sidebar { max-width: 100%; min-width: 0; }
         }
-
-    </style>
-</head>
-<body>
+</style>
+          </head>
+          <body>
+             <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
 
 <h1>RC Circuit Simulation</h1>
 
@@ -277,10 +271,7 @@
 
 </div>
 
-
-<script>
-    // --- DOM Elements ---
-    const voltageSlider = document.getElementById('voltageSlider');
+            <script>const voltageSlider = document.getElementById('voltageSlider');
     const resistanceSlider = document.getElementById('resistanceSlider');
     const capacitanceSlider = document.getElementById('capacitanceSlider');
     const voltageValueSpan = document.getElementById('voltageValue');
@@ -1048,8 +1039,7 @@
 
     // --- Start ---
     document.addEventListener('DOMContentLoaded', init); // Ensure DOM is ready before running init
-
 </script>
-
-</body>
-</html>
+          </body>
+        </html>
+        

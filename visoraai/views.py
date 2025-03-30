@@ -86,3 +86,85 @@ def chatbot_response(request):
     except Exception as e:
         logger.error(f"Chatbot error: {str(e)}", exc_info=True)
         return JsonResponse({"error": "Assistant is currently unavailable. Try again later."}, status=500)
+
+
+
+
+
+@api_view(['POST'])
+def chatbot_response_visora_ai(request):
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        user_message = data.get('message', '').strip()
+        category = data.get('category', '').strip()
+        subcategory = data.get('subcategory', '').strip()
+        topic = data.get('topic', '').strip()
+        username =  data.get('username', '').strip()
+        
+        print(category)
+        print(subcategory)
+        print(topic)
+
+        if not username:
+            return JsonResponse({"error": "Username is required"}, status=400)
+
+        if not user_message:
+            return JsonResponse({"error": "Message cannot be empty"}, status=400)
+        if len(user_message) > 500:
+            return JsonResponse({"error": "Message too long (max 500 characters)"}, status=400)
+
+        # Generate AI response
+        prompt = f"""
+        You are an expert animation educator assistant. Generate an interactive HTML response for:
+        Category: {category} (Defines the broad difficulty level, e.g., School, College, Research)
+        SubCategory: {subcategory} (Defines the specific grade/class/year/level of complexity within the category, e.g., Grade 8, Undergraduate, Advanced Research)
+        Subject: {topic} (Defines the specific subject matter, e.g., Newton’s Laws, Fourier Transform, Quantum Mechanics)
+        User Question: {user_message} (Defines what the user is asking, e.g., "How does gravity work?" "Explain Fourier series.")
+
+
+        Boundary:
+        - Strictly maintain the difficulty level based on Category and SubCategory.
+        - Ensure interactive elements (animations, simulations, interactive questions) match the exact depth of knowledge needed.
+        - The response should contain:
+          - A brief, clear explanation suited to {category} and {subcategory}.
+          - An interactive simulation, animation, or visual aid to illustrate the concept.
+          - A small assessment or question to reinforce learning.
+        - The response must not exceed the knowledge expected at {category} and {subcategory} levels.
+
+        Requirements:
+        - Use HTML with inline CSS/JS and libraries!
+        - Include interactive elements
+        - Accessible semantic markup
+        - Its should be interactive and educational friendly
+        - Do NOT include <html> or <head> tags and ```html and not even animation name details and others just only the thing requested!
+        - use those colors background:#212529 and these for others #5823c8,#ffffff and dont use any other colors !!     
+        - create mobile friendly only.
+        - content should be vertical align top start and left and overflow-x hidden as well as mobile friendly screens only
+        - if any assessment is provided by you give their ans as well as explanation too.
+        """
+
+        response = model.generate_content(prompt)
+
+        html_content = response.text.replace("```html", "").replace("```", "").strip() # Ensure this is only body content
+        style = """
+        <style>
+        *::-webkit-scrollbar {
+            width: 8px !important;
+        }
+        *::-webkit-scrollbar-track {
+            background-color: #121212;
+        }
+        *::-webkit-scrollbar-thumb {
+            background-color: rgb(73, 72, 72);
+        }
+        </style>
+        """
+        html_content = f"{style}{html_content}"
+        return JsonResponse({
+            'html': html_content, 
+        })
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON format"}, status=400)
+    except Exception as e:
+        logger.error(f"Chatbot error: {str(e)}", exc_info=True)
+        return JsonResponse({"error": "Assistant is currently unavailable. Try again later."}, status=500)

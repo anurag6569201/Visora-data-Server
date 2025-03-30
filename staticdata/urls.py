@@ -1,5 +1,5 @@
 from django.urls import path,include
-from .views import UploadProjectAPIView,CommentCreateView,LikeToggleView,RegisterUserNameDbView,QuizViewSet,ScoreViewSet,TheoryViewSet
+from .views import UploadProjectAPIView,CommentCreateView,LikeToggleView,RegisterUserNameDbView,QuizViewSet,ScoreViewSet,TheoryViewSet,CategoryListView
 from staticdata import views
 from rest_framework.routers import DefaultRouter
 from .views import (ProjectSearchAPI, ProjectDetailAPI, 
@@ -10,6 +10,8 @@ router = DefaultRouter()
 router.register(r'scores', ScoreViewSet)
 
 urlpatterns = [
+    path('categories/', CategoryListView.as_view(), name='category-list'),
+
     path("username/",RegisterUserNameDbView.as_view(), name="usernamedb"),
     path('upload/', UploadProjectAPIView.as_view(), name="upload_project"),
     path("api/projects/", views.list_projects, name="project-detail"),

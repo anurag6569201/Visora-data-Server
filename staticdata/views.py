@@ -374,3 +374,24 @@ def generate_ai_content(request, project_id, content_type):
         return Response({'status': 'success', 'generated': content_type})
     except Exception as e:
         return Response({'error': str(e)}, status=500)
+    
+
+
+
+from .models import Category
+from .serializers import CategorySerializer
+from collections import defaultdict
+
+class CategoryListView(APIView):
+    def get(self, request):
+        root_categories = Category.objects.filter(parent__isnull=True)
+        structured_data = {}
+        for category in root_categories:
+            structured_data[category.name] = self.build_category_structure(category)
+        return Response(structured_data)
+    
+    def build_category_structure(self, category):
+        children = category.children.all()
+        if not children:
+            return []
+        return {child.name: self.build_category_structure(child) for child in children}
