@@ -219,7 +219,7 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_THROTTLE_RATES': {
         'user': '100/hour',  # Default user rate
-        'enhanced_chatbot': '10/minute',  # Your custom throttle rate
+        'enhanced_chatbot': '100/minute',  # Your custom throttle rate
         # Add other throttle rates as needed
     }
 }
