@@ -9,6 +9,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('staticdata.urls')),
     path('', include('visoraai.urls')),
+    path('', include('visoraplanner.urls')),
     path('auth/', include('dj_rest_auth.urls')),
 ]
 

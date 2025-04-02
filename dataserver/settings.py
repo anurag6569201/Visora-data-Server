@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'import_export',
     'staticdata',
     'visoraai',
+    'visoraplanner',
 ]
 
 MIDDLEWARE = [
