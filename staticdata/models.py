@@ -3,6 +3,7 @@ import uuid
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils.timezone import now
+from django.conf import settings
 
 from datetime import timedelta
 class UserNameDb(models.Model):
@@ -106,3 +107,63 @@ class Category(models.Model):
 
     def __str__(self):
         return f"{self.name or '' } -> {self.category_name or ''}".strip()
+
+
+
+
+class UserSessionData(models.Model):
+    """
+    Stores a learning session state, associated with an anonymous user ID.
+    Allows multiple session records per anonymous ID.
+    """
+    # Anonymous User Identifier (replaces ForeignKey to user)
+    anonymous_user_id = models.UUIDField(
+        db_index=True, # Index for faster lookups
+        help_text="UUID identifying the anonymous user/browser."
+    )
+
+    # Optional name for the session (e.g., derived from topic)
+    name = models.CharField(
+        max_length=255,
+        blank=True,
+        default='',
+        help_text="User-friendly name for the session."
+    )
+
+    # --- Keep other fields as they are ---
+    version = models.CharField(max_length=20, default='5.5-html')
+    topic = models.CharField(max_length=255, blank=True, default='')
+    prerequisites = models.TextField(blank=True, default='')
+    duration = models.CharField(max_length=50, blank=True, default='1')
+    difficulty = models.CharField(max_length=50, blank=True, default='intermediate')
+    theme_mode = models.CharField(max_length=20, default='dark')
+    font_size_factor = models.FloatField(default=1.0)
+    high_contrast = models.BooleanField(default=False)
+    reduce_animations = models.BooleanField(default=False)
+    subtopics = models.JSONField(default=list, blank=True)
+    plan_data = models.JSONField(default=dict, blank=True)
+    review_schedule = models.JSONField(default=dict, blank=True)
+    plan_analysis = models.JSONField(null=True, blank=True)
+    user_points = models.IntegerField(default=0)
+    study_streak = models.IntegerField(default=0)
+    earned_badges = models.JSONField(default=list, blank=True)
+    last_study_date = models.DateField(null=True, blank=True)
+    chat_history = models.JSONField(default=list, blank=True)
+    journal_prompts = models.JSONField(default=dict, blank=True)
+    selected_subtopic_id = models.CharField(max_length=100, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        session_name = self.name or f"Session on '{self.topic[:30]}...'" if self.topic else f"Session {self.pk}"
+        return f"{session_name} for anon_id {str(self.anonymous_user_id)[:8]}..."
+
+    class Meta:
+        verbose_name = "User Session Data"
+        verbose_name_plural = "User Session Data"
+        # Order by anonymous user, then by update time (latest first)
+        ordering = ['anonymous_user_id', '-updated_at']
+        # Add index for faster latest session retrieval
+        indexes = [
+            models.Index(fields=['anonymous_user_id', '-updated_at']),
+        ]

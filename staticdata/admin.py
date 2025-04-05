@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import ProjectFile,Project,ProjectLike,ProjectComment,UserNameDb,Quiz,Leaderboard,Examples,Theory,Category
+from .models import ProjectFile,Project,ProjectLike,ProjectComment,UserNameDb,Quiz,Leaderboard,Examples,Theory,Category,UserSessionData
 
 
 admin.site.register(ProjectFile)
@@ -12,3 +12,4 @@ admin.site.register(Quiz)
 admin.site.register(Theory)
 admin.site.register(Examples)
 admin.site.register(Category)
+admin.site.register(UserSessionData)

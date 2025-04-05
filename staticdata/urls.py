@@ -1,13 +1,14 @@
 from django.urls import path,include
-from .views import UploadProjectAPIView,CommentCreateView,LikeToggleView,RegisterUserNameDbView,QuizViewSet,ScoreViewSet,TheoryViewSet,CategoryListView
+from .views import UploadProjectAPIView,CommentCreateView,LikeToggleView,RegisterUserNameDbView,QuizViewSet,ScoreViewSet,TheoryViewSet,CategoryListView,UserSessionViewSet
 from staticdata import views
 from rest_framework.routers import DefaultRouter
-from .views import (ProjectSearchAPI, ProjectDetailAPI, 
-                   ProjectMaterialsAPI, generate_ai_content)
+from .views import (generate_ai_content)
 
 app_name = "staticdata"
 router = DefaultRouter()
 router.register(r'scores', ScoreViewSet)
+router.register(r'user-sessions', UserSessionViewSet, basename='usersession')
+
 
 urlpatterns = [
     path('categories/', CategoryListView.as_view(), name='category-list'),
@@ -20,13 +21,18 @@ urlpatterns = [
     path("projects/<uuid:project_id>/like/", LikeToggleView.as_view(), name="project-like"),
 
     path('api/', include(router.urls)),
-    path("quizzes/<uuid:project_id>/", QuizViewSet.as_view({'get': 'list'})),
-    path("theory/<uuid:project_id>/", TheoryViewSet.as_view({'get': 'list'})),
+     path("quizzes/<uuid:project_id>/", QuizViewSet.as_view({'get': 'list', 'post': 'create'}), name='quiz-list'),
+     path("theory/<uuid:project_id>/", TheoryViewSet.as_view({'get': 'list', 'post': 'create'}), name='theory-list'),
+     # Search projects (now includes pagination)
+    path('api/projects/search/', views.ProjectSearchView.as_view(), name='project-search'),
 
-    path('materials/search/', ProjectSearchAPI.as_view(), name='project-search'),
-    path('materials/<uuid:id>/', ProjectDetailAPI.as_view(), name='project-detail'),
-    path('materials/<uuid:project_id>/<str:material_type>/', 
-         ProjectMaterialsAPI.as_view(), name='project-materials'),
+    # Get details for a specific project
+    path('api/projects/<int:id>/', views.ProjectDetailView.as_view(), name='project-detail'),
+
+    # Get materials for a specific project (using query parameter for type)
+    path('api/projects/<int:project_id>/materials/', views.ProjectMaterialsView.as_view(), name='project-materials'),
+
     path('<uuid:project_id>/generate/<str:content_type>/', 
          generate_ai_content, name='generate-content'),
+
 ]
