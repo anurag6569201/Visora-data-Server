@@ -74,6 +74,58 @@ class UploadProjectAPIView(APIView):
 
         return Response({"message": "Project uploaded successfully"}, status=status.HTTP_201_CREATED)
 
+
+
+class OpenSourceUploadProjectAPIView(APIView):
+    def post(self, request):
+
+        name = request.data.get("project_name")
+        tabname = request.data.get("project_tab_name")
+        gradename = request.data.get("project_grade_name")
+        subjectname = request.data.get("project_subject_name")
+        description = request.data.get("project_description")
+        token = request.data.get("token")
+        username = request.data.get("username")
+        email = request.data.get("email")
+        files = request.FILES.getlist("files")
+
+        if not all([name, description, token]) or not files:
+            return Response({"error": "Missing required fields"}, status=status.HTTP_400_BAD_REQUEST)
+        # Create or get the project
+        project, created = Project.objects.get_or_create(name=name, description=description, token=token,email=email,username=username,tabname=tabname,gradename=gradename,subjectname=subjectname)
+        html_content, css_content, js_content = "", "", ""
+
+        for file in files:
+            ext = os.path.splitext(file.name)[1].lower()
+
+            if ext == ".html":
+                html_content = file.read().decode("utf-8")
+            elif ext == ".css":
+                css_content = file.read().decode("utf-8")
+            elif ext == ".js":
+                js_content = file.read().decode("utf-8")
+
+        # Generate the combined HTML file
+        combined_html = f"""
+        <html>
+          <head>
+            <style>{css_content}</style>
+          </head>
+          <body>
+            {html_content}
+            <script>{js_content}</script>
+          </body>
+        </html>
+        """
+
+        # Save the combined file to the server
+        combined_file_path = os.path.join("projects", project.get_folder_name(), "combined.html")
+        ProjectFile.objects.create(project=project, file=ContentFile(combined_html.encode("utf-8"), name="combined.html"))
+        likeScoreCalculation(project.username)
+
+        return Response({"message": "Project uploaded successfully"}, status=status.HTTP_201_CREATED)
+
+
 def list_projects(request):
 
     auth_header = request.headers.get("Authorization")

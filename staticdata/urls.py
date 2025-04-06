@@ -1,5 +1,5 @@
 from django.urls import path,include
-from .views import UploadProjectAPIView,CommentCreateView,LikeToggleView,RegisterUserNameDbView,QuizViewSet,ScoreViewSet,TheoryViewSet,CategoryListView,UserSessionViewSet
+from .views import UploadProjectAPIView,CommentCreateView,LikeToggleView,RegisterUserNameDbView,QuizViewSet,ScoreViewSet,TheoryViewSet,CategoryListView,UserSessionViewSet,OpenSourceUploadProjectAPIView
 from staticdata import views
 from rest_framework.routers import DefaultRouter
 from .views import (generate_ai_content)
@@ -15,6 +15,7 @@ urlpatterns = [
 
     path("username/",RegisterUserNameDbView.as_view(), name="usernamedb"),
     path('upload/', UploadProjectAPIView.as_view(), name="upload_project"),
+    path('upload/open-source/', OpenSourceUploadProjectAPIView.as_view(), name="upload_project"),
     path("api/projects/", views.list_projects, name="project-detail"),
     path('api/projects/<uuid:id>/', views.get_project, name='get_project'),
     path("projects/<uuid:project_id>/comments/", CommentCreateView.as_view(), name="project-comments"),
