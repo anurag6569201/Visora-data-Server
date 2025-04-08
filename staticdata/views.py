@@ -604,7 +604,7 @@ class UserSessionViewSet(viewsets.ViewSet):
 
         try:
             queryset = self.get_queryset(request)
-            session_data = queryset.order_by('-updated_at').first() # Get the latest
+            session_data = queryset.order_by('updated_at').first() # Get the latest
 
             if not session_data:
                 logger.info(f"No session data found for anon_id {str(anonymous_user_id)[:8]}. Returning defaults.")
