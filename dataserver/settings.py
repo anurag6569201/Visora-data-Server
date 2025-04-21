@@ -19,6 +19,8 @@ load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+ADMIN_SECRET_PATH_SEGMENT = os.getenv('DJANGO_ADMIN_SECRET_PATH')
+ADMIN_URL_PREFIX = f'{ADMIN_SECRET_PATH_SEGMENT}/'
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -53,6 +55,8 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
 
     'import_export',
+
+    'landing',
     'staticdata',
     'visoraai',
     'visoraplanner',
