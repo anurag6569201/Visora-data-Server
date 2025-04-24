@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import IframeResponse
+from .models import UserProject
 
 
-admin.site.register(IframeResponse)
+admin.site.register(UserProject)
