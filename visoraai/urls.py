@@ -12,7 +12,6 @@ from .views import (
 app_name = "visoraai"
 
 router = DefaultRouter()
-router.register(r'projects', UserProjectViewSet, basename='userproject')
 
 urlpatterns = [
     # Developer AI Actions
