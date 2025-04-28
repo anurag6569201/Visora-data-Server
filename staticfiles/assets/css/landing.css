@@ -1,10 +1,10 @@
 /* --- Variables & Basic Setup --- */
 :root {
-    --bg-color: #05080a;
-    --terminal-bg: rgba(10, 15, 20, 0.85);
+    --bg-color: #212529;
+    --terminal-bg: #0d0d0e;
     --terminal-border: #1a2833;
-    --text-color: #00ffcc; /* Primary Neon Accent */
-    --secondary-text: #88aaff; /* Secondary Accent */
+    --text-color: #5923c8; /* Primary Neon Accent */
+    --secondary-text: #584089; /* Secondary Accent */
     --dim-text: #556677;
     --header-text: #c0c0c0;
     --font-mono: 'IBM Plex Mono', Consolas, 'Courier New', monospace;
@@ -43,7 +43,7 @@ body {
     background: var(--terminal-bg);
     border: 1px solid var(--terminal-border);
     border-radius: 8px;
-    box-shadow: 0 0 50px rgba(0, 255, 204, 0.1), 0 0 15px rgba(0, 0, 0, 0.5) inset;
+    box-shadow: 0 0 50px rgba(195, 0, 255, 0.1), 0 0 15px rgba(0, 0, 0, 0.5) inset;
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
 }

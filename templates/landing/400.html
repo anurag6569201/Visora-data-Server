@@ -1,17 +1,300 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bad Request</title>
-    <style>
-        body { font-family: sans-serif; text-align: center; padding-top: 50px; }
-        h1 { color: #17a2b8; } /* Blue/Info */
-    </style>
+    <title>400 Bad Request - Visora Data Server</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="stylesheet" href="{% static 'assets/css/landing.css' %}">
 </head>
+
 <body>
-    <h1>400 - Bad Request</h1>
-    <p>Sorry, the server could not understand your request due to invalid syntax.</p>
-    <p><a href="{% url 'landing:landing' %}">Go back to the Homepage</a></p>
+    <canvas id="matrix-background"></canvas>
+
+    <div class="terminal-container">
+        <div class="terminal-window">
+            <div class="terminal-header">
+                <span>VISORA DATA SERVER // SYSTEM ALERT</span>
+                <div class="header-buttons">
+                    <span class="dot red"></span>
+                    <span class="dot yellow"></span>
+                    <span class="dot green"></span>
+                </div>
+            </div>
+            <div class="terminal-body" id="terminal-output">
+            </div>
+            <div class="terminal-prompt" id="prompt-line" style="display: none;"> <span class="prompt-user">operator@visora-nexus:~$</span>
+                <input type="text" id="terminal-input" class="terminal-input" spellcheck="false" autocomplete="off"
+                    autofocus>
+                <span class="cursor" id="cursor">█</span>
+            </div>
+        </div>
+        <div class="terminal-footer">
+            <span>Status: <span class="log-error">ERROR 400</span> | Node: vsr-core-01 | Time: <span
+                    id="current-time"></span></span>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/typed.js@2.1.0/dist/typed.umd.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const terminalOutput = document.getElementById('terminal-output');
+            const promptLine = document.getElementById('prompt-line');
+            const terminalInput = document.getElementById('terminal-input');
+            const currentTimeEl = document.getElementById('current-time');
+            const cursor = document.getElementById('cursor');
+            const canvas = document.getElementById('matrix-background');
+            const terminalWindow = document.querySelector('.terminal-window');
+
+            let cursorInterval; // For blinking cursor timer
+
+            const visoraAsciiArt = `
+██╗  ██╗   ██████╗    ██████╗ 
+██║  ██║  ██╔═████╗  ██╔═████╗
+███████║  ██║██╔██║  ██║██╔██║
+╚════██║  ████╔╝██║  ████╔╝██║
+     ██║  ╚██████╔╝  ╚██████╔╝
+     ╚═╝   ╚═════╝    ╚═════╝ 
+            `;
+
+            // --- Updated Boot Sequence for 400 ---
+            const bootSequence = [
+                { text: 'System Alert: Request Syntax Error...', delay: 100, style: 'log-warning' },
+                { text: 'Server unable to process malformed client request.', delay: 200, style: 'log-dim' },
+                { text: 'Analyzing incoming data structure...', delay: 500 },
+                { text: 'Validating request headers and parameters...', delay: 300, style: 'log-dim' },
+                { text: '[ <span class="log-error">REJECTED</span> ] Invalid syntax or structure detected.', delay: 600 },
+                { text: ' ', delay: 50 }, // Add a blank line for spacing
+                { text: '-----------------------------------------------------', delay: 50, style: 'log-dim' },
+                { text: ' Error Code: <span class="log-error">400 - Bad Request</span>', delay: 100, style: 'log-error' },
+                { text: ' The server could not understand the request.', delay: 100, style: 'log-info' },
+                { text: ' Please check the request syntax or try again.', delay: 100, style: 'log-info' },
+                { text: '-----------------------------------------------------', delay: 50, style: 'log-dim' },
+                { text: ' ', delay: 50 },
+                { text: 'System stable. Awaiting operator command.', delay: 200 }
+            ];
+
+            const finalPromptMessage = `Bad Request. Available commands: <span class="log-success">'home'</span>, <span class="log-success">'back'</span>, <span class="log-success">'status'</span>.`;
+
+            function scrollToBottom() {
+                requestAnimationFrame(() => {
+                    terminalOutput.scrollTop = terminalOutput.scrollHeight;
+                });
+            }
+
+            function addLine(text, style = null, isHtml = false) {
+                const line = document.createElement('div');
+                if (style) {
+                    line.classList.add(style);
+                }
+                if (isHtml) {
+                    line.innerHTML = text;
+                } else {
+                    line.textContent = text;
+                }
+                terminalOutput.appendChild(line);
+                scrollToBottom();
+                return line;
+            }
+
+            function addAsciiArt(art) {
+                const pre = document.createElement('pre');
+                pre.classList.add('ascii-art');
+                pre.textContent = art;
+                terminalOutput.appendChild(pre);
+                scrollToBottom();
+            }
+
+            function updateTime() {
+                const now = new Date();
+                const options = {
+                    timeZone: 'Asia/Kolkata',
+                    hour12: false,
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                };
+                try {
+                    currentTimeEl.textContent = now.toLocaleTimeString('en-IN', options) + ' IST';
+                } catch (e) {
+                    currentTimeEl.textContent = now.toLocaleTimeString();
+                    console.warn("Could not format time for IST, using local time.", e);
+                }
+            }
+
+            function startCursorBlinking() {
+                clearInterval(cursorInterval);
+                cursor.style.visibility = 'visible';
+                cursorInterval = setInterval(() => {
+                    cursor.style.visibility = cursor.style.visibility === 'hidden' ? 'visible' : 'hidden';
+                }, 500);
+            }
+
+            function stopCursorBlinking() {
+                clearInterval(cursorInterval);
+                cursor.style.visibility = 'visible';
+            }
+
+            function showPrompt() {
+                addLine(finalPromptMessage, null, true);
+                promptLine.style.display = 'flex';
+                terminalInput.focus();
+                startCursorBlinking();
+            }
+
+            function handleCommand(command) {
+                addLine(`<span class="prompt-user">operator@visora-nexus:~$</span> ${command}`, null, true);
+                switch (command.toLowerCase()) {
+                    case 'home':
+                        addLine('Attempting navigation to root directory...', 'log-info');
+                        setTimeout(() => {
+                            window.location.href = '/';
+                        }, 500);
+                        break;
+                    case 'back':
+                        addLine('Attempting to return to previous location...', 'log-info');
+                        setTimeout(() => {
+                            history.back();
+                        }, 500);
+                        break;
+                    case 'status':
+                        addLine('<span class="log-error">Error 400</span>: Bad Request. The server could not understand the request due to invalid syntax.', null, true);
+                        addLine('System operational but client request was malformed.', 'log-info');
+                        terminalInput.focus();
+                        break;
+                    case 'help':
+                        addLine(`Available commands: <span class="log-success">'home'</span>, <span class="log-success">'back'</span>, <span class="log-success">'status'</span>`, 'log-info', true);
+                        terminalInput.focus();
+                        break;
+                    case '':
+                        terminalInput.focus();
+                        break;
+                    default:
+                        addLine(`COMMAND NOT RECOGNIZED: '${command}'. Type <span class='log-success'>'help'</span> for available commands.`, 'log-warning', true);
+                        terminalInput.focus();
+                        break;
+                }
+                if (command !== '') {
+                    terminalInput.value = '';
+                }
+                scrollToBottom();
+            }
+
+            function drawMatrix(ctx, canvas, columns, rainDrops, alphabet, fontSize) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = 'rgba(89, 35, 200,1)';
+                ctx.font = fontSize + 'px ' + getComputedStyle(document.documentElement).getPropertyValue('--font-mono').trim();
+                for (let i = 0; i < rainDrops.length; i++) {
+                    const text = alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+                    const x = i * fontSize;
+                    const y = rainDrops[i] * fontSize;
+                    ctx.fillText(text, x, y);
+                    if (y > canvas.height && Math.random() > 0.975) {
+                        rainDrops[i] = 0;
+                    }
+                    rainDrops[i]++;
+                }
+            }
+
+            function initBackgroundAnimation() {
+                if (!canvas) return null;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) return null;
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                const katakana = 'アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズブヅプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッン';
+                const latin = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                const nums = '0123456789';
+                const alphabet = katakana + latin + nums;
+                const fontSize = 16;
+                const columns = Math.floor(canvas.width / fontSize);
+                const rainDrops = Array(columns).fill(1);
+                const intervalId = setInterval(() => drawMatrix(ctx, canvas, columns, rainDrops, alphabet, fontSize), 40);
+                window.addEventListener('resize', () => {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                });
+                return intervalId;
+            }
+
+            function typeBootSequence() {
+                addAsciiArt(visoraAsciiArt);
+                let sequenceIndex = 0;
+                let currentTypedInstance = null;
+                function typeNextLine() {
+                    if (sequenceIndex < bootSequence.length) {
+                        const item = bootSequence[sequenceIndex];
+                        const lineContainer = document.createElement('div');
+                        if (item.style) {
+                            if (item.style.includes('log-error')) {
+                                lineContainer.classList.add('log-error');
+                            } else if (item.style.includes('log-warning')) {
+                                lineContainer.classList.add('log-warning');
+                            } else if (item.style.includes('log-info')) {
+                                lineContainer.classList.add('log-info');
+                            } else if (item.style.includes('log-dim')) {
+                                lineContainer.classList.add('log-dim');
+                            } else {
+                                lineContainer.classList.add(item.style);
+                            }
+                        }
+                        terminalOutput.appendChild(lineContainer);
+                        scrollToBottom();
+                        currentTypedInstance = new Typed(lineContainer, {
+                            strings: [item.text],
+                            typeSpeed: 1,
+                            backSpeed: 0,
+                            backDelay: 500,
+                            startDelay: item.delay || 50,
+                            showCursor: false,
+                            contentType: 'html',
+                            onComplete: (self) => {
+                                scrollToBottom();
+                                sequenceIndex++;
+                                typeNextLine();
+                            },
+                            onDestroy: (self) => { }
+                        });
+                    } else {
+                        showPrompt();
+                    }
+                }
+                typeNextLine();
+            }
+
+            const stopAnimation = initBackgroundAnimation();
+            updateTime();
+            setInterval(updateTime, 1000);
+
+            terminalInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const command = terminalInput.value.trim();
+                    handleCommand(command);
+                }
+            });
+
+            terminalWindow.addEventListener('click', (e) => {
+                if (promptLine.style.display === 'flex') {
+                    terminalInput.focus();
+                }
+            });
+
+            terminalInput.addEventListener('focus', startCursorBlinking);
+            terminalInput.addEventListener('blur', stopCursorBlinking);
+
+            typeBootSequence();
+
+        }); // End DOMContentLoaded
+    </script>
 </body>
+
 </html>

@@ -10,14 +10,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'assets/css/landing.css' %}">
-    <!-- Favicon links -->
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 </head>
 
 <body data-admin-url-prefix="{{ admin_url_prefix }}">
-    <!-- Advanced Background Canvas/Element -->
     <canvas id="matrix-background"></canvas>
 
     <div class="terminal-container">
@@ -51,7 +49,6 @@
     <script>
 
         document.addEventListener('DOMContentLoaded', () => {
-            // --- DOM Element References ---
             const terminalOutput = document.getElementById('terminal-output');
             const promptLine = document.getElementById('prompt-line');
             const terminalInput = document.getElementById('terminal-input');
@@ -62,11 +59,10 @@
             const canvas = document.getElementById('matrix-background'); // For background animation
             const terminalWindow = document.querySelector('.terminal-window');
 
-            // --- Configuration & State ---
             const adminUrlPrefix = bodyElement.getAttribute('data-admin-url-prefix');
-            let fullAdminUrl = null; // Will be constructed, e.g., /secret-prefix/admin/
-            let isConfigured = false; // Flag to track if admin path is set up correctly
-            let cursorInterval; // For blinking cursor timer
+            let fullAdminUrl = null; 
+            let isConfigured = false; 
+            let cursorInterval; 
 
             const visoraAsciiArt = `
 ██╗   ██╗  ██╗  ███████╗   ██████╗   ██████╗    █████╗
@@ -94,13 +90,13 @@
                     line.classList.add(style);
                 }
                 if (isHtml) {
-                    line.innerHTML = text; // Use innerHTML if text contains HTML tags
+                    line.innerHTML = text; 
                 } else {
-                    line.textContent = text; // Use textContent for plain text (safer)
+                    line.textContent = text; 
                 }
                 terminalOutput.appendChild(line);
                 scrollToBottom();
-                return line; // Return the created element if needed
+                return line; 
             }
 
              /** Adds ASCII art */
@@ -141,32 +137,26 @@
                 }, 500); // Blink speed
             }
 
-            /** Stops the cursor blinking animation */
             function stopCursorBlinking() {
                 clearInterval(cursorInterval);
-                cursor.style.visibility = 'visible'; // Ensure it's visible when stopped
+                cursor.style.visibility = 'visible'; 
             }
 
 
 
-            /** Displays the final prompt and input elements */
             function showPrompt() {
-                // Add the appropriate final message based on configuration
                 addLine(isConfigured ? finalPromptMessage : configErrorMessage, null, true); // Use innerHTML for potential styling
-                loginLinkContainer.style.display = 'block'; // Show the link container
+                loginLinkContainer.style.display = 'block'; 
 
                 if (isConfigured) {
-                    // Only show the input prompt if configured correctly
                     promptLine.style.display = 'flex';
-                    terminalInput.focus(); // Focus the input field
-                    startCursorBlinking(); // Start the cursor blinking
+                    terminalInput.focus(); 
+                    startCursorBlinking();
                 } else {
-                    // Hide input elements if not configured
                     promptLine.style.display = 'none';
                 }
             }
 
-            /** Processes the command entered by the user */
             function handleCommand(command) {
                 addLine(`<span class="prompt-user">operator@visora-nexus:~$</span> ${command}`, null, true); // Log user command
 
@@ -177,22 +167,20 @@
                             window.location.href = fullAdminUrl; // Redirect to the secret admin URL
                         }, 800);
                     } else {
-                        // This case should ideally not happen if input is hidden, but as a safeguard:
                         addLine(`[<span class="log-error">ERROR</span>] Cannot process command: System configuration error.`, null, true);
                         terminalInput.focus();
                     }
                 } else if (command === 'help') {
                     addLine(`Available commands: <span class="log-success">'login'</span>`, 'log-info', true);
                     terminalInput.focus();
-                } else if (command) { // Handle other non-empty commands
+                } else if (command) { 
                     addLine(`COMMAND NOT RECOGNIZED: ${command}. Type 'help' for available commands.`, 'log-warning');
                     terminalInput.focus();
-                } else { // Handle empty command (just pressing Enter)
-                    terminalInput.focus(); // Re-focus without adding extra lines
+                } else { 
+                    terminalInput.focus();
                 }
             }
 
-            /** Renders the Matrix background animation frame */
             function drawMatrix(ctx, canvas, columns, rainDrops, alphabet, fontSize) {
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -232,63 +220,53 @@
                 window.addEventListener('resize', () => {
                     canvas.width = window.innerWidth;
                     canvas.height = window.innerHeight;
-                    // Consider recalculating columns/raindrops on resize if desired
                 });
                 return intervalId;
             }
 
 
-            /** Manages the Typed.js boot sequence animation */
             function typeBootSequence() {
                 let sequenceIndex = 0;
-                let currentTypedInstance = null; // To potentially destroy later if needed
+                let currentTypedInstance = null; 
 
                 function typeNextLine() {
                     if (sequenceIndex < bootSequence.length) {
                         const item = bootSequence[sequenceIndex];
-                        // Create a container div for Typed.js, apply style if needed
                         const lineContainer = document.createElement('div');
                         if (item.style) {
                             lineContainer.classList.add(item.style);
                         }
-                        // Add specific classes for success/error if using styled spans
                         if (item.text.includes('log-success')) lineContainer.classList.add('log-success-line');
                         if (item.text.includes('log-error')) lineContainer.classList.add('log-error-line');
 
                         terminalOutput.appendChild(lineContainer);
-                        scrollToBottom(); // Scroll before typing starts for this line
+                        scrollToBottom(); 
 
                         currentTypedInstance = new Typed(lineContainer, {
                             strings: [item.text],
-                            typeSpeed: 10, // Adjust typing speed
+                            typeSpeed: 10,
                             backSpeed: 0,
                             backDelay: 500,
-                            startDelay: item.delay || 50, // Use delay before typing starts
-                            showCursor: false, // Don't show Typed.js cursor
-                            contentType: 'html', // Allow HTML entities/tags in strings
+                            startDelay: item.delay || 50, 
+                            showCursor: false, 
+                            contentType: 'html',
                             onComplete: () => {
-                                scrollToBottom(); // Ensure scrolled after line completion
+                                scrollToBottom();
                                 sequenceIndex++;
-                                // No timeout needed here, Typed.js handles startDelay
-                                typeNextLine(); // Proceed to the next line
+                                typeNextLine(); 
                             },
                             onDestroy: () => {
-                                // console.log("Typed instance destroyed for index:", sequenceIndex -1 );
                             }
                         });
                     } else {
-                        // Boot sequence finished, show the final prompt
                         showPrompt();
                     }
                 }
 
-                typeNextLine(); // Start the first line
+                typeNextLine(); 
             }
 
 
-            // --- Initialization ---
-
-            // 1. Configure Admin URL & Check Setup
             if (adminUrlPrefix && adminUrlPrefix !== 'local-debug-admin-access/' && adminUrlPrefix !== '/') {
                 fullAdminUrl = `/${adminUrlPrefix}admin/`; // Construct the full URL
                 isConfigured = true;
@@ -296,46 +274,32 @@
             } else {
                 isConfigured = false;
                 console.error("Visora Nexus: Secure admin path NOT configured correctly. Authentication will be disabled.");
-                // Add a visible error message *immediately* if config is bad
                 addLine(configErrorMessage, null, true);
             }
 
-            // 2. Initialize Background Animation
             initBackgroundAnimation();
-
-            // 3. Initialize Clock
             updateTime();
-            setInterval(updateTime, 1000); // Update every second
-
-            // 4. Setup Event Listeners
-            // Handle Enter key press in the input field
+            setInterval(updateTime, 1000); 
             terminalInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' && isConfigured) { // Only process if configured
-                    e.preventDefault(); // Prevent default form submission if wrapped in one
+                if (e.key === 'Enter' && isConfigured) { 
+                    e.preventDefault(); 
                     const command = terminalInput.value.trim();
-                    terminalInput.value = ''; // Clear input immediately
+                    terminalInput.value = '';
                     handleCommand(command);
                 } else if (e.key === 'Enter' && !isConfigured) {
-                    e.preventDefault(); // Prevent default even if error
-                    terminalInput.value = ''; // Clear input
-                    // Optionally add another error message or just ignore
+                    e.preventDefault();
+                    terminalInput.value = '';
                 }
             });
-
-            // Focus input when clicking anywhere in the terminal window (if configured)
             terminalWindow.addEventListener('click', () => {
                 if (isConfigured) {
                     terminalInput.focus();
                 }
             });
-
-            // Handle cursor visibility on focus/blur
             terminalInput.addEventListener('focus', () => { if (isConfigured) startCursorBlinking(); });
             terminalInput.addEventListener('blur', stopCursorBlinking);
             addAsciiArt(visoraAsciiArt);
-            // 5. Start the Boot Sequence Animation
             typeBootSequence();
-
         }); // End DOMContentLoaded
     </script>
 </body>
