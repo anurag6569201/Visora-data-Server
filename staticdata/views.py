@@ -639,7 +639,11 @@ class UserSessionViewSet(viewsets.ViewSet):
         Create a new session data record for the anonymous user.
         POST /api/user-sessions/
         """
+
         anonymous_user_id = get_anonymous_id_from_request(request)
+        print("create function get called")
+        # Check if the anonymous user ID is valid
+        print("Anonymous user ID:", anonymous_user_id)
         if not anonymous_user_id:
              return Response({"detail": "Valid X-Anonymous-User-ID header required."}, status=status.HTTP_403_FORBIDDEN)
 
