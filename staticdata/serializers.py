@@ -72,9 +72,9 @@ class UserSessionDataSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserSessionData
         fields = [
-            'id', # Include the primary key
-            'anonymous_user_id', # Include the anonymous ID
-            'name', # Include the session name
+            'id',
+            'anonymous_user_id', 
+            'name', 
             'version', 'topic', 'prerequisites', 'duration', 'difficulty',
             'theme_mode', 'font_size_factor', 'high_contrast', 'reduce_animations',
             'subtopics', 'plan_data', 'review_schedule', 'plan_analysis',
@@ -82,6 +82,4 @@ class UserSessionDataSerializer(serializers.ModelSerializer):
             'chat_history', 'journal_prompts', 'selected_subtopic_id',
             'created_at', 'updated_at'
         ]
-        # anonymous_user_id is set by the view based on header/request context
-        # id, created_at, updated_at are naturally read-only during creation/update input
         read_only_fields = ('id', 'anonymous_user_id', 'created_at', 'updated_at')

@@ -22,9 +22,10 @@ urlpatterns = [
     path("projects/<uuid:project_id>/like/", LikeToggleView.as_view(), name="project-like"),
 
     path('api/', include(router.urls)),
-     path("quizzes/<uuid:project_id>/", QuizViewSet.as_view({'get': 'list', 'post': 'create'}), name='quiz-list'),
-     path("theory/<uuid:project_id>/", TheoryViewSet.as_view({'get': 'list', 'post': 'create'}), name='theory-list'),
-     # Search projects (now includes pagination)
+    path("quizzes/<uuid:project_id>/", QuizViewSet.as_view({'get': 'list', 'post': 'create'}), name='quiz-list'),
+    path("theory/<uuid:project_id>/", TheoryViewSet.as_view({'get': 'list', 'post': 'create'}), name='theory-list'),
+    
+    # Search projects (now includes pagination)
     path('api/projects/search/', views.ProjectSearchView.as_view(), name='project-search'),
 
     # Get details for a specific project
@@ -33,7 +34,6 @@ urlpatterns = [
     # Get materials for a specific project (using query parameter for type)
     path('api/projects/<int:project_id>/materials/', views.ProjectMaterialsView.as_view(), name='project-materials'),
 
-    path('<uuid:project_id>/generate/<str:content_type>/', 
-         generate_ai_content, name='generate-content'),
+    path('<uuid:project_id>/generate/<str:content_type>/',generate_ai_content, name='generate-content'),
 
 ]
