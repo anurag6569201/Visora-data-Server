@@ -142,7 +142,6 @@ def list_projects(request):
                     with open(combined_file_path, "r", encoding="utf-8") as f:
                         combined_html = f.read()
                 except Exception as e:
-                    print(f"Error reading combined.html: {e}")
                     combined_html = ""
             else:
                 combined_html = ""
@@ -171,7 +170,6 @@ def list_projects(request):
                     with open(combined_file_path, "r", encoding="utf-8") as f:
                         combined_html = f.read()
                 except Exception as e:
-                    print(f"Error reading combined.html: {e}")
                     combined_html = ""
             else:
                 combined_html = ""
@@ -184,6 +182,20 @@ def list_projects(request):
                 "userid": user.userid,
                 "combined_html": combined_html,  
             })
+
+    return JsonResponse({"projects": projects_data})
+
+def list_project_names_ids(request):
+    projects_data = []
+    auth_header = request.headers.get("Authorization")
+
+    projects = Project.objects.filter(username=auth_header)
+
+    for project in projects:
+        projects_data.append({
+            "id": project.id,
+            "name": project.name,
+        })
 
     return JsonResponse({"projects": projects_data})
 
@@ -214,7 +226,6 @@ class CommentCreateView(APIView):
     def post(self, request, project_id):
         """Create a new comment for a project"""
         token = request.headers.get("Authorization")
-        print("comment Token received:", token)
         if not token:
             return JsonResponse({"error": "Unauthorized"}, status=401)
 
@@ -240,7 +251,6 @@ class LikeToggleView(View):
     def get(self, request, project_id):
         """Return the like count and whether the user has liked the project"""
         token = request.headers.get("Authorization")
-        print("Token received:", token)
 
         if not token:
             return JsonResponse({"error": "Unauthorized"}, status=401)
@@ -597,7 +607,6 @@ class UserSessionViewSet(viewsets.ViewSet):
         Load the most recently updated session data for the anonymous user.
         Includes server-side streak check.
         """
-        print("latest function get called")
         anonymous_user_id = get_anonymous_id_from_request(request)
         if not anonymous_user_id:
              return Response({"detail": "Valid X-Anonymous-User-ID header required."}, status=status.HTTP_403_FORBIDDEN)
@@ -641,9 +650,6 @@ class UserSessionViewSet(viewsets.ViewSet):
         """
 
         anonymous_user_id = get_anonymous_id_from_request(request)
-        print("create function get called")
-        # Check if the anonymous user ID is valid
-        print("Anonymous user ID:", anonymous_user_id)
         if not anonymous_user_id:
              return Response({"detail": "Valid X-Anonymous-User-ID header required."}, status=status.HTTP_403_FORBIDDEN)
 

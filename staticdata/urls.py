@@ -17,7 +17,8 @@ urlpatterns = [
     path('upload/', UploadProjectAPIView.as_view(), name="upload_project"),
     path('upload/open-source/', OpenSourceUploadProjectAPIView.as_view(), name="upload_project"),
     path("api/projects/", views.list_projects, name="project-detail"),
-    path('api/projects/<uuid:id>/', views.get_project, name='get_project'),
+    path("api/projects/", views.list_projects, name="project-detail"),
+    path('api/projects/list/', views.list_project_names_ids, name='list_project_names_ids'),
     path("projects/<uuid:project_id>/comments/", CommentCreateView.as_view(), name="project-comments"),
     path("projects/<uuid:project_id>/like/", LikeToggleView.as_view(), name="project-like"),
 

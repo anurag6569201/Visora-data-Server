@@ -19,7 +19,7 @@ ADMIN_URL_PREFIX = f'{ADMIN_SECRET_PATH_SEGMENT}/'
 DEBUG = os.getenv('DJANGO_DEBUG', 'True') == 'True'
 
 # Hosts
-ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', '*').split(',')
+ALLOWED_HOSTS = ['*']
 
 # Installed Apps
 INSTALLED_APPS = [
