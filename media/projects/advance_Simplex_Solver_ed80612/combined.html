@@ -1,0 +1,912 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>advance Simplex Solver</title><style>:root {
+  --bg-color: #f4f7f9;
+  /* Light grayish blue */
+  --text-color: #334155;
+  /* Dark slate gray */
+  --primary-color: #3B82F6;
+  /* Vivid Blue */
+  --primary-hover-color: #2563EB;
+  /* Darker Blue */
+  --secondary-color: #64748B;
+  /* Cool Gray */
+  --border-color: #cbd5e1;
+  /* Light Gray Border */
+  --card-bg-color: #ffffff;
+  --table-header-bg: #475569;
+  /* Dark Slate */
+  --table-header-text: #ffffff;
+  --table-row-even-bg: #f8fafc;
+  /* Very light gray */
+  --table-row-hover-bg: #eef2ff;
+  /* Light Lavender */
+  --pivot-row-bg: #A7F3D0 !important;
+  /* Light Green */
+  --pivot-row-text: #047857;
+  --pivot-col-bg: #BFDBFE !important;
+  /* Light Blue */
+  --pivot-col-text: #1E40AF;
+  --pivot-el-bg: #6EE7B7 !important;
+  /* Brighter Green */
+  --pivot-el-text: #065F46;
+  /* Darker Green */
+  --explanation-bg: #e0f2fe;
+  /* Light Sky Blue */
+  --explanation-border: #7dd3fc;
+  /* Sky Blue */
+  --explanation-text: #075985;
+  /* Darker Sky Blue */
+  --solution-bg: #dcfce7;
+  /* Light Green (for success) */
+  --solution-border: #86efac;
+  /* Green */
+  --solution-text: #166534;
+  /* Dark Green */
+  --error-bg: #fee2e2;
+  /* Light Red */
+  --error-border: #fca5a5;
+  /* Red */
+  --error-text: #991b1b;
+  /* Dark Red */
+
+  --font-sans: 'Inter', sans-serif;
+  --font-mono: 'Source Code Pro', monospace;
+  --border-radius: 8px;
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+body {
+  font-family: var(--font-sans);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  line-height: 1.6;
+}
+
+.main-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+h1 {
+  color: var(--primary-color);
+  margin-bottom: 30px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.input-section {
+  margin: 20px 0;
+  padding: 30px;
+  background: var(--card-bg-color);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border-color);
+}
+
+.tablesContainer {
+  width: 100%;
+  margin-top: 30px;
+}
+
+.iteration-block {
+  margin-bottom: 30px;
+  background: var(--card-bg-color);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  /* To contain table border radius */
+  border: 1px solid var(--border-color);
+}
+
+table {
+  border-collapse: collapse;
+  /* Changed from separate */
+  width: 100%;
+  /* margin: 30px 0; Removed as iteration-block handles margin */
+  /* background: var(--card-bg-color); Removed as iteration-block handles background */
+  /* box-shadow: none; Shadow now on iteration-block */
+  /* border-radius: var(--border-radius); Rounded corners now on iteration-block */
+  /* overflow: hidden; Moved to iteration-block */
+  /* border: 1px solid var(--border-color); Moved to iteration-block */
+}
+
+caption {
+  caption-side: top;
+  text-align: left;
+  font-size: 1.4em;
+  /* Increased size */
+  font-weight: 600;
+  color: var(--primary-color);
+  padding: 15px 20px;
+  background-color: #eef2ff;
+  /* Light lavender, distinct from table content */
+  border-bottom: 2px solid var(--primary-color);
+}
+
+th,
+td {
+  padding: 12px 15px;
+  /* Adjusted padding */
+  text-align: center;
+  border: 1px solid var(--border-color);
+  /* Unified border style */
+}
+
+th {
+  background-color: var(--table-header-bg);
+  color: var(--table-header-text);
+  font-weight: 600;
+  /* Bolder */
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+tbody tr:nth-child(even) {
+  background-color: var(--table-row-even-bg);
+}
+
+tbody tr:hover {
+  background-color: var(--table-row-hover-bg);
+}
+
+.pivot-row td,
+.pivot-row th {
+  background-color: var(--pivot-row-bg);
+  color: var(--pivot-row-text);
+  font-weight: 600;
+}
+
+.pivot-column {
+  /* Applied to td/th in the column */
+  background-color: var(--pivot-col-bg);
+  color: var(--pivot-col-text);
+  font-weight: 500;
+  /* Slightly less than row */
+}
+
+.pivot-element {
+  /* Applied to the specific pivot cell */
+  background-color: var(--pivot-el-bg) !important;
+  /* Ensure override */
+  color: var(--pivot-el-text) !important;
+  font-weight: 700 !important;
+  outline: 2px solid var(--pivot-el-text);
+  outline-offset: -2px;
+}
+
+/* Highlighting Cj-Zj row cells */
+tbody tr:last-child td.pivot-column {
+  font-weight: 700;
+}
+
+
+.explanation,
+.solution-box,
+.error-box {
+  margin: 0;
+  /* Handled by iteration-block or specific containers */
+  padding: 20px 25px;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
+  /* Rounded bottom corners */
+  font-size: 0.95em;
+}
+
+.explanation {
+  background: var(--explanation-bg);
+  border-top: 1px solid var(--explanation-border);
+  color: var(--explanation-text);
+}
+
+.explanation strong {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.explanation p {
+  margin-bottom: 0.75em;
+}
+
+.explanation code {
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
+.explanation .rule {
+  font-style: italic;
+  color: var(--secondary-color);
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+
+button {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 12px 28px;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  margin: 10px 5px;
+  transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+  font-weight: 600;
+  /* Bolder */
+  font-size: 0.95rem;
+}
+
+button:hover:not(:disabled) {
+  background: var(--primary-hover-color);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(0px);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+button:disabled {
+  background: #b0bec5;
+  /* Muted gray */
+  color: #78909c;
+  cursor: not-allowed;
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.fraction {
+  display: inline-flex;
+  /* Use flex for better vertical alignment */
+  flex-direction: column;
+  text-align: center;
+  vertical-align: middle;
+  /* Align with surrounding text */
+  margin: -2px 2px;
+  /* Fine-tune vertical position */
+  line-height: 1.1;
+}
+
+.fraction span {
+  display: block;
+  padding: 0 3px;
+}
+
+.fraction .numerator {
+  border-bottom: 1.5px solid var(--text-color);
+}
+
+.solution-box,
+.error-box {
+  padding: 25px 30px;
+  border-radius: var(--border-radius);
+  margin: 25px 0;
+  border: 1px solid;
+  box-shadow: var(--shadow);
+}
+
+.solution-box {
+  background: var(--solution-bg);
+  color: var(--solution-text);
+  border-color: var(--solution-border);
+}
+
+.error-box {
+  background: var(--error-bg);
+  color: var(--error-text);
+  border-color: var(--error-border);
+}
+
+.solution-box h3,
+.error-box h3 {
+  margin-top: 0;
+  font-weight: 700;
+}
+
+.solution-box ul {
+  padding-left: 20px;
+  list-style: square;
+}
+
+.solution-box li {
+  margin-bottom: 5px;
+}
+
+
+input[type="text"],
+textarea {
+  width: 100%;
+  padding: 12px 15px;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-color);
+  box-sizing: border-box;
+  margin-top: 8px;
+  /* Increased margin */
+  font-size: 1rem;
+  font-family: var(--font-mono);
+  /* Monospace for inputs */
+  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+input[type="text"]:focus,
+textarea:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  /* Focus ring */
+  outline: none;
+}
+
+label {
+  display: block;
+  margin-bottom: 10px;
+  /* Increased margin */
+  font-weight: 600;
+  /* Bolder */
+  color: var(--text-color);
+  font-size: 1.05rem;
+}
+
+.form-group {
+  margin-bottom: 25px;
+  /* Increased margin */
+}
+
+.form-group small {
+  display: block;
+  margin-top: 8px;
+  color: var(--secondary-color);
+  font-size: 0.85rem;
+}
+
+.button-group {
+  margin-top: 25px;
+  text-align: center;
+}</style></head><body><script src="https://cdn.jsdelivr.net/npm/fraction.js@5.2.1/dist/fraction.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&amp;family=Noto+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<div class="main-container">
+        <h1>Interactive Simplex Method Solver</h1>
+        <div id="messageContainer"></div> <div class="input-section">
+            <div class="form-group">
+                <label for="objective">Objective Function Coefficients (Maximize):</label>
+                <input type="text" id="objective" placeholder="e.g., 3,5 for Max Z = 3x1 + 5x2">
+                <small>Enter comma-separated numbers. This solver handles maximization problems.</small>
+            </div>
+
+            <div class="form-group">
+                <label for="constraints">Constraints (one per line):</label>
+                <textarea id="constraints" rows="4" placeholder="Format: c1,c2,...,relation,RHS (e.g., 1,0,<=,4)"></textarea>
+                <small>Use '&lt;=' relation. RHS must be non-negative for this standard Simplex solver.</small>
+            </div>
+
+            <div class="button-group">
+                <button onclick="initializeProblem()">🚀 Setup Initial Tableau</button>
+                <button id="nextBtn" onclick="performIteration()" style="display: none;">➡️ Next Iteration</button>
+                <button onclick="resetSolver()">🔄 Reset Solver</button>
+            </div>
+        </div>
+
+        <div id="solutionResult" style="display:none;"></div> <div id="tablesContainer"></div>
+    </div><script type="module">let currentState = null;
+const TOLERANCE = 1e-9; // For floating point comparisons
+
+function displayMessage(type, title, message) {
+    const container = document.getElementById('messageContainer');
+    const boxTypeClass = type === 'error' ? 'error-box' : (type === 'solution' ? 'solution-box' : 'explanation');
+    container.innerHTML = `<div class="${boxTypeClass}"><h3>${title}</h3><p>${message}</p></div>`;
+    container.style.display = 'block';
+    if (type === 'solution') { // If it's the final solution, also use solutionResult
+        document.getElementById('solutionResult').innerHTML = `<div class="${boxTypeClass}"><h3>${title}</h3>${message}</div>`;
+        document.getElementById('solutionResult').style.display = 'block';
+    }
+}
+
+function clearMessages() {
+    document.getElementById('messageContainer').innerHTML = '';
+    document.getElementById('messageContainer').style.display = 'none';
+    document.getElementById('solutionResult').innerHTML = '';
+    document.getElementById('solutionResult').style.display = 'none';
+}
+
+
+function toFrac(number, forDisplay = true) {
+    if (number === Infinity || number === Number.POSITIVE_INFINITY) return forDisplay ? "∞" : Infinity;
+    if (number === -Infinity || number === Number.NEGATIVE_INFINITY) return forDisplay ? "-∞" : -Infinity;
+    if (typeof number !== 'number' || isNaN(number)) {
+        // Try to parse if it's a fraction string from fraction.js
+        if (typeof number === 'string' && number.includes('/')) {
+            try {
+                const f = new Fraction(number);
+                return formatFracInstance(f, forDisplay);
+            } catch (e) { return String(number); }
+        }
+        return String(number);
+    }
+    // Handle very small numbers that should be zero
+    if (Math.abs(number) < TOLERANCE) number = 0;
+
+    try {
+        const f = new Fraction(number);
+        return formatFracInstance(f, forDisplay);
+    } catch (e) {
+        // Fallback for numbers fraction.js might struggle with (e.g. very large/small exponents)
+        return number.toPrecision(3); // Or some other formatting
+    }
+}
+
+function formatFracInstance(f, forDisplay) {
+    if (f.d === 1) return (f.s * f.n).toString();
+    if (f.n === 0) return "0";
+    if (forDisplay) {
+        return `<div class="fraction"><span class="numerator">${f.s * f.n}</span><span class="denominator">${f.d}</span></div>`;
+    }
+    return `${f.s * f.n}/${f.d}`;
+}
+
+
+function resetSolver() {
+    currentState = null;
+    clearMessages();
+    document.getElementById('tablesContainer').innerHTML = '';
+    const nextBtn = document.getElementById('nextBtn');
+    nextBtn.style.display = 'none';
+    nextBtn.disabled = false;
+    document.getElementById('objective').value = '';
+    document.getElementById('constraints').value = '';
+}
+
+function parseObjective() {
+    const input = document.getElementById('objective').value.trim();
+    if (!input) {
+        displayMessage('error', 'Input Error', 'Objective function cannot be empty.');
+        return null;
+    }
+    const coefficients = input.split(',').map(s => {
+        try { return new Fraction(s.trim()).valueOf(); }
+        catch { return NaN; }
+    });
+
+    if (coefficients.some(isNaN)) {
+        displayMessage('error', 'Input Error', 'Invalid numbers in objective function. Please use comma-separated numbers or fractions (e.g., 1/2).');
+        return null;
+    }
+    return coefficients;
+}
+
+function parseConstraints() {
+    const input = document.getElementById('constraints').value.trim();
+    if (!input) {
+        displayMessage('error', 'Input Error', 'Constraints cannot be empty.');
+        return null;
+    }
+    const lines = input.split('\n').map(line => line.trim()).filter(line => line);
+    const constraints = [];
+    let numVarsFirstConstraint = -1;
+
+    for (const line of lines) {
+        const parts = line.split(',').map(p => p.trim());
+        if (parts.length < 3) {
+            displayMessage('error', 'Input Error', `Invalid constraint format: "${line}". Expected format: c1,c2,...,relation,RHS`);
+            return null;
+        }
+        const relation = parts[parts.length - 2].toUpperCase(); // Make relation case-insensitive
+        if (relation !== '<=') { // This basic solver only supports <=
+            displayMessage('error', 'Input Error', `Invalid relation in constraint: "${line}". This solver only supports '<=' for standard Simplex.`);
+            return null;
+        }
+
+        let rhs;
+        try { rhs = new Fraction(parts[parts.length - 1]).valueOf(); }
+        catch { rhs = NaN; }
+
+        const coefficients = parts.slice(0, -2).map(s => {
+            try { return new Fraction(s.trim()).valueOf(); }
+            catch { return NaN; }
+        });
+
+        if (coefficients.some(isNaN) || isNaN(rhs)) {
+            displayMessage('error', 'Input Error', `Invalid numbers in constraint: "${line}". Ensure all coefficients and RHS are numbers or fractions.`);
+            return null;
+        }
+        if (numVarsFirstConstraint === -1) {
+            numVarsFirstConstraint = coefficients.length;
+        } else if (coefficients.length !== numVarsFirstConstraint) {
+            displayMessage('error', 'Input Error', `Inconsistent number of coefficients in constraints. Expected ${numVarsFirstConstraint} based on the first constraint, but found ${coefficients.length} in line "${line}".`);
+            return null;
+        }
+
+        constraints.push({ coefficients, relation, rhs });
+    }
+    if (constraints.length === 0) {
+        displayMessage('error', 'Input Error', 'No valid constraints provided.');
+        return null;
+    }
+    return constraints;
+}
+
+function initializeProblem() {
+    clearMessages();
+    currentState = null; // Ensure state is reset
+    document.getElementById('tablesContainer').innerHTML = ''; // Clear previous tables
+    const nextBtn = document.getElementById('nextBtn');
+    nextBtn.style.display = 'none';
+    nextBtn.disabled = false;
+
+
+    const objectiveCoeffs = parseObjective();
+    let parsedConstraints = parseConstraints();
+
+    if (!objectiveCoeffs || !parsedConstraints) return;
+
+    // Validate consistency between objective coeffs and constraint coeffs
+    const numObjectiveVars = objectiveCoeffs.length;
+    if (parsedConstraints.length > 0 && parsedConstraints[0].coefficients.length !== numObjectiveVars) {
+        displayMessage('error', 'Input Error', `The number of coefficients in the objective function (${numObjectiveVars}) does not match the number of coefficients in the constraints (${parsedConstraints[0].coefficients.length}).`);
+        return;
+    }
+
+
+    try {
+        currentState = createInitialState(objectiveCoeffs, parsedConstraints);
+        renderState(currentState);
+        nextBtn.style.display = 'inline-block';
+    } catch (e) {
+        // Error from createInitialState (e.g., negative RHS)
+        displayMessage('error', 'Problem Setup Error', e.message);
+    }
+}
+
+function createInitialState(objective, rawConstraints) {
+    const numDecisionVars = objective.length;
+    const variableNames = [];
+    for (let i = 0; i < numDecisionVars; i++) variableNames.push(`x${i + 1}`);
+
+    const basis = [];
+    const cb = []; // Cost of Basic Variables
+    let slackVarIndex = 0;
+
+    rawConstraints.forEach((constraint) => {
+        if (constraint.relation !== '<=') { // Should have been caught by parser, but double check
+            throw new Error("This solver currently only supports '<=' constraints. Please convert your constraints.");
+        }
+        if (constraint.rhs < 0) {
+            throw new Error(`Right-hand side (RHS) of constraint "${constraint.coefficients.join(',')},<=,${constraint.rhs}" must be non-negative for standard Simplex. This solver does not handle negative RHS values automatically (e.g., with Dual Simplex or Big M).`);
+        }
+
+        slackVarIndex++;
+        const slackVarName = `s${slackVarIndex}`;
+        variableNames.push(slackVarName);
+        basis.push(slackVarName);
+        cb.push(0); // Slack variables have a cost of 0 in the objective function
+    });
+
+    const fullObjective = [...objective]; // Coefficients for decision variables
+    // Add 0 coefficients for slack variables to the objective function
+    for (let i = 0; i < slackVarIndex; i++) fullObjective.push(0);
+
+    const rows = [];
+    rawConstraints.forEach((constraint, constraintIdx) => {
+        const row = Array(variableNames.length).fill(0); // Initialize with zeros
+
+        // Coefficients for decision variables
+        for (let j = 0; j < numDecisionVars; j++) {
+            row[j] = constraint.coefficients[j] || 0;
+        }
+
+        // Coefficient for the slack variable of this constraint (will be 1)
+        row[numDecisionVars + constraintIdx] = 1;
+
+        // RHS
+        row.push(constraint.rhs);
+        rows.push(row);
+    });
+
+    return {
+        variables: variableNames,    // All variable names [x1, x2, s1, s2]
+        objective: fullObjective,    // Cj values for all variables
+        basis,                       // Basic variables for each row [s1, s2]
+        cb,                          // Cost of basic variables for each row [0, 0]
+        rows,                        // Tableau rows (coefficients + RHS)
+        iteration: 1,
+        explanation: `<h3>📚 Initial Tableau (Iteration 1)</h3>
+                              <p>The problem has been converted into standard form. Slack variables (<code>s<sub>i</sub></code>) were added to convert '≤' inequalities into equalities. These slack variables (<code>${basis.join(', ')}</code>) form the initial basic feasible solution.</p>
+                              <p><strong>Key Rows:</strong></p>
+                              <ul>
+                                <li><strong>C<sub>j</sub> Row:</strong> Coefficients of the objective function (<code>${fullObjective.map(c => toFrac(c, false)).join(', ')}</code>).</li>
+                                <li><strong>Z<sub>j</sub> Row:</strong> Calculated as Σ(CB<sub>i</sub> * a<sub>ij</sub>) for each column 'j'. This represents the gross profit given up by introducing one unit of variable 'j'.</li>
+                                <li><strong>C<sub>j</sub>-Z<sub>j</sub> Row (Net Evaluation Row):</strong> If all values are ≤ 0, the current solution is optimal for a maximization problem.</li>
+                              </ul>
+                              <p><strong>Next Step:</strong> If there are positive values in the C<sub>j</sub>-Z<sub>j</sub> row, click "Next Iteration" to select an entering variable and perform a pivot operation.</p>`,
+        pivotColIndex: -1, // No pivot column identified yet
+        pivotRowIndex: -1  // No pivot row identified yet
+    };
+}
+
+
+function renderState(state) {
+    const container = document.getElementById('tablesContainer');
+    // Create a new div for each iteration to keep previous tables
+    const iterationBlock = document.createElement('div');
+    iterationBlock.className = 'iteration-block';
+
+    const table = document.createElement('table');
+    const caption = document.createElement('caption');
+    caption.innerHTML = `Simplex Tableau: Iteration ${state.iteration}`;
+    table.appendChild(caption);
+
+    const thead = document.createElement('thead');
+    let headerHtml = '<tr><th>Basis</th><th>C<sub>B</sub></th>';
+    state.variables.forEach(v => headerHtml += `<th>${v}</th>`);
+    headerHtml += '<th>RHS (b<sub>i</sub>)</th>';
+    if (state.pivotColIndex !== -1) { // Only show ratio column if a pivot column is selected
+        headerHtml += '<th>Ratio (b<sub>i</sub>/a<sub>ik</sub>)</th>';
+    }
+    headerHtml += '</tr>';
+
+    const cjDisplayRowValues = state.objective.map(c => `<td>${toFrac(c)}</td>`).join('');
+    const cjDisplayRow = `<tr><td class="fw-bold">C<sub>j</sub> →</td><td></td>${cjDisplayRowValues}<td></td>${state.pivotColIndex !== -1 ? '<td></td>' : ''}</tr>`;
+    thead.innerHTML = headerHtml + cjDisplayRow;
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    const ratios = [];
+    if (state.pivotColIndex !== -1) {
+        state.rows.forEach(row => {
+            const coef = row[state.pivotColIndex];
+            // Ensure coef is positive for ratio calculation
+            ratios.push(coef > TOLERANCE ? row[row.length - 1] / coef : Infinity);
+        });
+    }
+
+
+    state.rows.forEach((dataRow, i) => {
+        const row = document.createElement('tr');
+        if (i === state.pivotRowIndex) row.classList.add('pivot-row');
+
+        // Cells for Basis and CB
+        row.innerHTML = `<td>${state.basis[i]}</td><td>${toFrac(state.cb[i])}</td>`;
+
+        // Cells for variable coefficients and RHS
+        dataRow.forEach((val, j) => { // Includes RHS
+            const cell = document.createElement('td');
+            if (j < state.variables.length && j === state.pivotColIndex) cell.classList.add('pivot-column'); // Variable columns
+            if (j === dataRow.length - 1 && state.pivotColIndex === state.variables.length) { /* Special case if RHS could be pivot, not for std simplex */ }
+
+            if (i === state.pivotRowIndex && j === state.pivotColIndex) cell.classList.add('pivot-element');
+            cell.innerHTML = toFrac(val);
+            row.appendChild(cell);
+        });
+
+        // Ratio cell
+        if (state.pivotColIndex !== -1) {
+            const ratioVal = ratios[i];
+            const ratioDisplay = (ratioVal === Infinity || isNaN(ratioVal) || ratioVal < 0) ? "---" : toFrac(ratioVal);
+            row.innerHTML += `<td>${ratioDisplay}</td>`;
+        }
+        tbody.appendChild(row);
+    });
+
+    // Calculate Zj
+    const zj = Array(state.variables.length).fill(0); // Zj for variable columns
+    let currentObjectiveValue = 0; // Zj for RHS column (overall Z)
+
+    state.rows.forEach((row, i) => {
+        const costOfBasicVar = state.cb[i];
+        for (let j = 0; j < state.variables.length; j++) { // Iterate through variable columns
+            zj[j] += costOfBasicVar * row[j];
+        }
+        currentObjectiveValue += costOfBasicVar * row[row.length - 1]; // Multiply CB with RHS
+    });
+
+
+    const zjRow = document.createElement('tr');
+    zjRow.innerHTML = `<td><strong>Z<sub>j</sub> →</strong></td><td></td>` +
+        zj.map(v => `<td>${toFrac(v)}</td>`).join('') +
+        `<td>${toFrac(currentObjectiveValue)}</td>` + // Z value in RHS column
+        `${state.pivotColIndex !== -1 ? '<td></td>' : ''}`;
+    tbody.appendChild(zjRow);
+
+    // Calculate Cj - Zj
+    const cjZj = [];
+    for (let i = 0; i < state.variables.length; i++) {
+        cjZj.push(state.objective[i] - zj[i]);
+    }
+
+    const cjZjRow = document.createElement('tr');
+    let cjZjHtml = `<td><strong>C<sub>j</sub>-Z<sub>j</sub> →</strong></td><td></td>`;
+    cjZj.forEach((val, k_idx) => {
+        cjZjHtml += `<td class="${k_idx === state.pivotColIndex ? 'pivot-column' : ''}">${toFrac(val)}</td>`;
+    });
+    cjZjHtml += `<td></td>${state.pivotColIndex !== -1 ? '<td></td>' : ''}`;
+    cjZjRow.innerHTML = cjZjHtml;
+    tbody.appendChild(cjZjRow);
+
+    table.appendChild(tbody);
+    iterationBlock.appendChild(table);
+
+    const explanationDiv = document.createElement('div');
+    explanationDiv.className = 'explanation';
+    explanationDiv.innerHTML = state.explanation;
+    iterationBlock.appendChild(explanationDiv);
+
+    // Prepend new iteration block to show latest at the top
+    if (container.firstChild) {
+        container.insertBefore(iterationBlock, container.firstChild);
+    } else {
+        container.appendChild(iterationBlock);
+    }
+    iterationBlock.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function performIteration() {
+    if (!currentState) return;
+    clearMessages(); // Clear any previous general messages
+
+    let iteration = currentState.iteration + 1;
+
+    // Calculate Zj and Cj-Zj based on currentState
+    const zj_calc = Array(currentState.variables.length).fill(0);
+    let currentZValue_calc = 0;
+    currentState.rows.forEach((row, i) => {
+        const costOfBasicVar = currentState.cb[i];
+        for (let j = 0; j < currentState.variables.length; j++) {
+            zj_calc[j] += costOfBasicVar * row[j];
+        }
+        currentZValue_calc += costOfBasicVar * row[currentState.rows[0].length - 1]; // RHS is last element
+    });
+
+    const cjZj_calc = [];
+    for (let i = 0; i < currentState.variables.length; i++) {
+        cjZj_calc.push(currentState.objective[i] - zj_calc[i]);
+    }
+
+    // Check for Optimality: All Cj-Zj <= 0 (for maximization)
+    const maxCjZj = Math.max(...cjZj_calc.filter(val => !isNaN(val))); // Filter out NaNs if any
+    if (maxCjZj <= TOLERANCE) { // Optimality reached
+        let solutionReport = `<h3>🏆 Optimal Solution Reached at Iteration ${currentState.iteration}!</h3>
+                                      <p>All C<sub>j</sub>-Z<sub>j</sub> values are zero or negative, indicating optimality.</p>
+                                      <p><strong>Final Solution Details:</strong></p><ul>`;
+        currentState.basis.forEach((basicVarName, i) => {
+            const val = currentState.rows[i][currentState.rows[i].length - 1];
+            solutionReport += `<li><code>${basicVarName}</code> = ${toFrac(val, false)} (Value ≈ ${val.toFixed(3)})</li>`;
+        });
+        currentState.variables.forEach(v => {
+            if (v.startsWith('x') && !currentState.basis.includes(v)) { // Non-basic decision variables are 0
+                solutionReport += `<li><code>${v}</code> = 0</li>`;
+            }
+        });
+        solutionReport += `</ul><p><strong>Maximum Objective Function Value (Z): ${toFrac(currentZValue_calc, false)} (Value ≈ ${currentZValue_calc.toFixed(3)})</strong></p>`;
+
+        // Update current state's explanation for the final render
+        currentState.explanation = `<h3>🏁 Iteration ${currentState.iteration} - Optimal Solution</h3>
+                                          <p class="rule">Condition: All C<sub>j</sub>-Z<sub>j</sub> ≤ 0.</p>
+                                          <p>The values in the C<sub>j</sub>-Z<sub>j</sub> row are [${cjZj_calc.map(v => toFrac(v, false)).join(', ')}]. Since all are non-positive, the current solution is <strong>optimal</strong>.</p>
+                                          ${solutionReport.replace(`<h3>🏆 Optimal Solution Reached at Iteration ${currentState.iteration}!</h3>`, '')}`;
+        currentState.pivotColIndex = -1; // No pivot in optimal tableau
+        currentState.pivotRowIndex = -1;
+        renderState(currentState); // Re-render to show final table without highlights
+        displayMessage('solution', 'Optimal Solution Found!', solutionReport);
+        document.getElementById('nextBtn').disabled = true;
+        return;
+    }
+
+    // Identify Entering Variable (Pivot Column)
+    // Max positive Cj-Zj
+    const enteringIndex = cjZj_calc.indexOf(maxCjZj);
+    const enteringVar = currentState.variables[enteringIndex];
+
+    // Identify Leaving Variable (Pivot Row) - Min Ratio Test
+    const ratios = [];
+    let minPositiveRatio = Infinity;
+    let leavingIndex = -1;
+
+    currentState.rows.forEach((row, i) => {
+        const pivotColCoeff = row[enteringIndex];
+        if (pivotColCoeff > TOLERANCE) { // Denominator must be positive
+            const ratio = row[row.length - 1] / pivotColCoeff;
+            ratios.push(ratio);
+            if (ratio < minPositiveRatio) {
+                minPositiveRatio = ratio;
+                leavingIndex = i;
+            }
+        } else {
+            ratios.push(Infinity); // Or some indicator for non-positive/zero denominator
+        }
+    });
+
+    // Check for Unboundedness
+    if (leavingIndex === -1 || minPositiveRatio === Infinity) {
+        let unboundedReport = `<h3>⚠️ Unbounded Solution Detected at Iteration ${currentState.iteration}</h3>
+                                       <p>The entering variable is <code>${enteringVar}</code> (selected due to C<sub>j</sub>-Z<sub>j</sub> = ${toFrac(maxCjZj, false)}).</p>
+                                       <p>However, all coefficients in the pivot column (<code>${enteringVar}</code> column) are non-positive. This means the entering variable can be increased indefinitely without making any current basic variable negative.</p>
+                                       <p>Therefore, the objective function is <strong>unbounded</strong>.</p>`;
+        currentState.explanation = unboundedReport;
+        currentState.pivotColIndex = enteringIndex; // Show the column that led to unboundedness
+        currentState.pivotRowIndex = -1; // No leaving row
+        renderState(currentState); // Render the table that shows unboundedness
+        displayMessage('error', 'Unbounded Solution', unboundedReport);
+        document.getElementById('nextBtn').disabled = true;
+        return;
+    }
+
+    const leavingVar = currentState.basis[leavingIndex];
+    const pivotValue = currentState.rows[leavingIndex][enteringIndex];
+
+    // Prepare explanation for the current step (decision making) before performing operations
+    // This explanation will be part of the *new* state, rendered with the *next* table.
+    let explanationHtml = `<h3>🔁 Iteration ${iteration} - Pivot Operation</h3>`;
+    explanationHtml += `<p class="rule"><strong>Goal:</strong> Improve the current basic feasible solution by bringing a non-basic variable into the basis and removing a basic variable.</p>`;
+    explanationHtml += `<p><strong>1. Identify Entering Variable (Pivot Column):</strong></p>
+                                <span class="rule">Rule: Select the non-basic variable with the largest positive C<sub>j</sub>-Z<sub>j</sub> value.</span>
+                                <p>The C<sub>j</sub>-Z<sub>j</sub> values are [<code>${cjZj_calc.map(v => toFrac(v, false)).join(', ')}</code>].
+                                The largest positive value is <strong>${toFrac(maxCjZj, false)}</strong>, corresponding to variable <code>${enteringVar}</code>.
+                                Thus, <code>${enteringVar}</code> is the <strong>entering variable</strong>.</p>`;
+
+    explanationHtml += `<p><strong>2. Identify Leaving Variable (Pivot Row):</strong></p>
+                                <span class="rule">Rule: Perform the minimum ratio test. For each row <code>i</code>, calculate Ratio = RHS<sub>i</sub> / a<sub>ik</sub>, where a<sub>ik</sub> > 0 is the coefficient in the pivot column (<code>${enteringVar}</code> column). Select the row with the smallest non-negative ratio.</span>
+                                <p>Ratios calculated:</p><ul>`;
+    currentState.rows.forEach((r, i) => {
+        if (r[enteringIndex] > TOLERANCE) {
+            explanationHtml += `<li>Row for <code>${currentState.basis[i]}</code>: ${toFrac(r[r.length - 1], false)} / ${toFrac(r[enteringIndex], false)} = <strong>${toFrac(ratios[i], false)}</strong></li>`;
+        } else {
+            explanationHtml += `<li>Row for <code>${currentState.basis[i]}</code>: Coefficient in pivot column is not positive (value: ${toFrac(r[enteringIndex], false)}), ratio is not considered or is ∞.</li>`;
+        }
+    });
+    explanationHtml += `</ul><p>The minimum non-negative ratio is <strong>${toFrac(minPositiveRatio, false)}</strong>, in the row corresponding to basic variable <code>${leavingVar}</code>.
+                                Thus, <code>${leavingVar}</code> is the <strong>leaving variable</strong>.</p>`;
+
+    explanationHtml += `<p><strong>3. Pivot Element:</strong></p>
+                                <p>The pivot element is at the intersection of the entering variable column (<code>${enteringVar}</code>) and the leaving variable row (<code>${leavingVar}</code>).
+                                The pivot element is <strong>${toFrac(pivotValue, false)}</strong>.</p>`;
+
+    // Create the new state by performing pivot operations
+    const newState = JSON.parse(JSON.stringify(currentState)); // Deep copy (note: Fraction objects become plain objects)
+    // Re-hydrate Fraction objects for calculation precision if needed, though JS numbers are used for arithmetic here
+    newState.iteration = iteration;
+
+    // Update Basis and CB
+    newState.basis[leavingIndex] = enteringVar;
+    newState.cb[leavingIndex] = newState.objective[newState.variables.indexOf(enteringVar)];
+
+
+    // Normalize Pivot Row: New Pivot Row = Old Pivot Row / Pivot Element
+    const newPivotRowValues = [];
+    for (let j = 0; j < newState.rows[leavingIndex].length; j++) {
+        newPivotRowValues.push(newState.rows[leavingIndex][j] / pivotValue);
+    }
+    newState.rows[leavingIndex] = newPivotRowValues;
+
+
+    // Update Other Rows: New Row = Old Row - (Its Pivot Column Coefficient * New Pivot Row)
+    newState.rows.forEach((row, i) => {
+        if (i === leavingIndex) return; // Skip the pivot row itself
+        const factor = row[enteringIndex]; // Coefficient in pivot column for this row
+        for (let j = 0; j < row.length; j++) {
+            row[j] = row[j] - (factor * newState.rows[leavingIndex][j]);
+            // Clean up near-zero values that can result from floating point arithmetic
+            if (Math.abs(row[j]) < TOLERANCE) row[j] = 0;
+        }
+    });
+
+    explanationHtml += `<p><strong>4. Perform Row Operations:</strong></p>
+                                <ul>
+                                    <li>The new pivot row (now for <code>${enteringVar}</code>) is obtained by dividing the old pivot row (for <code>${leavingVar}</code>) by the pivot element (${toFrac(pivotValue, false)}).</li>
+                                    <li>Other rows are updated using the formula: New Row = Old Row - (Coefficient in Pivot Column for that row × New Pivot Row).</li>
+                                </ul>
+                                <p>The resulting tableau is shown above. Review and click "Next Iteration" to continue or check for optimality.</p>`;
+
+    newState.explanation = explanationHtml;
+    newState.pivotColIndex = enteringIndex; // For highlighting in the *rendered* table
+    newState.pivotRowIndex = leavingIndex;  // For highlighting in the *rendered* table
+
+    currentState = newState;
+    renderState(currentState);
+}</script></body></html>

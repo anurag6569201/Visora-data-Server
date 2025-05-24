@@ -1,0 +1,639 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Big-M Method Solver</title><style>body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f7f6;
+    padding-top: 20px;
+    padding-bottom: 50px;
+}
+
+.solver-container {
+    max-width: 1200px;
+    margin: auto;
+    background: #ffffff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    color: #343a40;
+    text-align: center;
+    margin-bottom: 30px;
+    font-weight: 600;
+}
+
+.input-section {
+    margin-bottom: 30px;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.form-label {
+    font-weight: 500;
+    color: #495057;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 25px 0;
+    background: white;
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+    overflow: hidden;
+    /* For border-radius on table */
+}
+
+th,
+td {
+    padding: 10px 12px;
+    text-align: center;
+    border: 1px solid #dee2e6;
+    vertical-align: middle;
+}
+
+th {
+    background-color: #007bff;
+    color: white;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    /* For sticky header */
+    z-index: 10;
+}
+
+tbody tr:nth-child(odd) {
+    background-color: #f8f9fa;
+}
+
+tbody tr:hover {
+    background-color: #e9ecef;
+}
+
+.pivot-row {
+    background-color: #a8d8ea !important;
+    /* Light blue for pivot row */
+    font-weight: bold;
+}
+
+.pivot-column {
+    background-color: #f3d9a9 !important;
+    /* Light orange for pivot column */
+}
+
+.pivot-element {
+    background-color: #82c9a0 !important;
+    /* Light green for pivot element */
+    font-weight: bold;
+    color: #fff;
+}
+
+.explanation-box {
+    margin-top: 20px;
+    padding: 20px;
+    background: #e9f7fd;
+    border-left: 5px solid #007bff;
+    border-radius: 5px;
+    color: #31708f;
+}
+
+.explanation-box strong {
+    color: #0056b3;
+}
+
+.solution-box {
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 25px;
+    text-align: center;
+}
+
+.solution-optimal {
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+}
+
+.solution-error {
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+}
+
+.fraction-display {
+    display: inline-block;
+    text-align: center;
+    vertical-align: middle;
+    line-height: 1.2;
+}
+
+.fraction-display .numerator {
+    display: block;
+    border-bottom: 1px solid currentColor;
+    padding: 0 0.2em;
+}
+
+.fraction-display .denominator {
+    display: block;
+    padding: 0 0.2em;
+}
+
+.btn-custom {
+    margin: 5px;
+}</style></head><body><script src="https://cdnjs.cloudflare.com/ajax/libs/fraction.js/4.2.0/fraction.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+
+
+<div class="container solver-container">
+    <h1>Advanced Big M Method Solver</h1>
+
+    <div class="input-section">
+        <div class="mb-3">
+            <label for="objective" class="form-label">Objective Function Coefficients (Maximise,
+                    comma-separated):</label>
+            <input type="text" id="objective" class="form-control" placeholder="Example: 3,2 for Max Z = 3x1 + 2x2">
+        </div>
+
+        <div class="mb-3">
+            <label for="constraints" class="form-label">Constraints (one per line):</label>
+            <textarea id="constraints" rows="4" class="form-control" placeholder="Example:
+2,1,<=,50
+1,1,>=,30
+2,3,=,90"></textarea>
+        </div>
+
+        <div>
+            <button onclick="initializeProblem()" class="btn btn-success btn-custom">Initialize Problem</button>
+            <button id="nextBtn" onclick="performIteration()" class="btn btn-info btn-custom" style="display: none;">Next Iteration</button>
+            <button onclick="resetSolver()" class="btn btn-danger btn-custom">Reset Solver</button>
+        </div>
+    </div>
+
+    <div id="tablesContainer"></div>
+    <div id="explanationContainer"></div>
+    <div id="solutionDisplay" class="solution-box" style="display:none;"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous">
+</script>
+<script>
+    let currentState = null;
+    const M = 1e9; 
+
+    function formatNumber(value) {
+        if (value === Infinity) return "∞";
+        if (value === -Infinity) return "-∞";
+        if (isNaN(value)) return "NaN";
+
+        const M_THRESHOLD = 1e-6; 
+        if (Math.abs(value) > M/2) { 
+            const multipleOfM = value / M;
+            if (Math.abs(multipleOfM - Math.round(multipleOfM)) < M_THRESHOLD) {
+                const intMultiple = Math.round(multipleOfM);
+                if (intMultiple === 1) return "M";
+                if (intMultiple === -1) return "-M";
+                if (intMultiple !== 0) return `${intMultiple}M`;
+            }
+            
+            let termB = 0;
+            let closestMultiple = Math.round(multipleOfM);
+            termB = value - closestMultiple * M;
+
+            if (Math.abs(termB) < 1e-1){ // if b is small, it might be rounding error, ignore it.
+                 if (closestMultiple === 1) return "M";
+                 if (closestMultiple === -1) return "-M";
+                 if (closestMultiple !== 0) return `${closestMultiple}M`;
+            }
+            
+            if (Math.abs(termB) < M/1000) { // Heuristic: termB is much smaller than M
+                 const bFormatted = formatNumber(termB); // Format the constant term
+                 if (closestMultiple === 0) return bFormatted;
+                 let sign = termB >=0 ? "+" : "";
+                 if (closestMultiple === 1) return `M ${sign} ${bFormatted}`;
+                 if (closestMultiple === -1) return `-M ${sign} ${bFormatted}`;
+                 return `${closestMultiple}M ${sign} ${bFormatted}`;
+            }
+            return value.toExponential(2);
+        }
+
+        try {
+            const f = new Fraction(value);
+            if (f.d === 1) return (f.s * f.n).toString();
+            if (f.n === 0) return "0";
+            if (Math.abs(f.n) > 100000 || Math.abs(f.d) > 100000) { // Avoid overly complex fractions
+                return parseFloat(value.toFixed(3)).toString();
+            }
+            return `<span class="fraction-display"><span class="numerator">${f.s * f.n}</span><span class="denominator">${f.d}</span></span>`;
+        } catch (e) {
+            if (Math.abs(value) < 1e-9 && value !== 0) return value.toExponential(2);
+            return parseFloat(value.toFixed(3)).toString();
+        }
+    }
+
+    function initializeProblem() {
+        const objectiveCoeffs = document.getElementById('objective').value.trim();
+        const constraintsInput = document.getElementById('constraints').value.trim();
+
+        if (!objectiveCoeffs || !constraintsInput) {
+            alert("Please provide objective function and constraints.");
+            return;
+        }
+
+        const objective = objectiveCoeffs.split(',').map(Number);
+        if (objective.some(isNaN)) {
+            alert('Invalid objective function coefficients. Please use comma-separated numbers.');
+            return;
+        }
+
+        const lines = constraintsInput.split('\n').map(line => line.trim()).filter(line => line);
+        const constraints = [];
+        for (const line of lines) {
+            const parts = line.split(',').map(p => p.trim());
+            if (parts.length < 3) { // Min: 1 coeff, type, rhs
+                alert(`Invalid constraint format: ${line}. Expected format: c1,c2,...,relation,RHS`);
+                return;
+            }
+            const relation = parts[parts.length - 2];
+            const rhs = Number(parts[parts.length - 1]);
+            const coefficients = parts.slice(0, -2).map(Number);
+
+            if (!['<=', '>=', '='].includes(relation) || isNaN(rhs) || coefficients.some(isNaN)) {
+                alert(`Invalid constraint line: ${line}. Check numbers and relation type (<=, >=, =).`);
+                return;
+            }
+            if (coefficients.length !== objective.length) {
+                alert(`Constraint "${line}" has ${coefficients.length} coefficients, but objective function has ${objective.length} variables.`);
+                return;
+            }
+            constraints.push({ coefficients, relation, rhs });
+        }
+
+        if (constraints.length === 0) {
+            alert("No constraints provided.");
+            return;
+        }
+        
+        currentState = createInitialState(objective, constraints);
+        renderState(currentState);
+        document.getElementById('nextBtn').style.display = 'inline-block';
+        document.getElementById('nextBtn').disabled = false;
+        document.getElementById('solutionDisplay').style.display = 'none';
+        document.getElementById('explanationContainer').innerHTML = '';
+    }
+
+    function createInitialState(objective, constraints) {
+        const numVars = objective.length;
+        let variables = Array.from({length: numVars}, (_, i) => `x${i+1}`);
+        const constraintsInfo = [];
+        let slackCount = 1, surplusCount = 1, artificialCount = 1;
+
+        for (const c of constraints) {
+            const info = { type: c.relation, originalRhs: c.rhs };
+             if (c.rhs < 0) { // Ensure RHS is non-negative
+                c.rhs = -c.rhs;
+                c.coefficients = c.coefficients.map(coef => -coef);
+                if (c.relation === '<=') c.relation = '>=';
+                else if (c.relation === '>=') c.relation = '<=';
+                info.type = c.relation; // update info type as well
+            }
+
+            if (c.relation === '<=') {
+                variables.push(`s${slackCount++}`);
+                info.slackIndex = variables.length - 1;
+            } else if (c.relation === '>=') {
+                variables.push(`su${surplusCount++}`);
+                info.surplusIndex = variables.length - 1;
+                variables.push(`a${artificialCount++}`);
+                info.artificialIndex = variables.length - 1;
+            } else { // '='
+                variables.push(`a${artificialCount++}`);
+                info.artificialIndex = variables.length - 1;
+            }
+            constraintsInfo.push(info);
+        }
+
+        const rows = [];
+        for (let i = 0; i < constraints.length; i++) {
+            const c = constraints[i];
+            const row = Array(variables.length + 1).fill(0); 
+            c.coefficients.forEach((coef, j) => row[j] = coef);
+
+            const info = constraintsInfo[i];
+            if (info.slackIndex !== undefined) row[info.slackIndex] = 1;
+            if (info.surplusIndex !== undefined) row[info.surplusIndex] = -1;
+            if (info.artificialIndex !== undefined) row[info.artificialIndex] = 1;
+            
+            row[variables.length] = c.rhs; 
+            rows.push(row);
+        }
+
+        const extendedObjective = Array(variables.length).fill(0);
+        objective.forEach((o, i) => extendedObjective[i] = o);
+        variables.forEach((v, i) => {
+            if (v.startsWith('a')) extendedObjective[i] = -M;
+        });
+
+        const basis = [];
+        const cb = [];
+        for (let i = 0; i < constraints.length; i++) {
+            const info = constraintsInfo[i];
+            if (info.type === '<=' && info.originalRhs >=0) { // or if type became <= after sign flip of negative RHS
+                basis.push(variables[info.slackIndex]);
+                cb.push(extendedObjective[info.slackIndex]);
+            } else { // >= or = or <= with negative RHS (which becomes >=)
+                basis.push(variables[info.artificialIndex]);
+                cb.push(extendedObjective[info.artificialIndex]);
+            }
+        }
+        
+        let initialExplanation = "Initial Simplex Tableau.<br>";
+        initialExplanation += "Objective function (Maximise Z): " + objective.map((c,i) => `${formatNumber(c)}x${i+1}`).join(" + ") + ".<br>";
+        constraints.forEach((c, i) => {
+            initialExplanation += `Constraint ${i+1}: ${c.coefficients.map((cf,j) => `${formatNumber(cf)}x${j+1}`).join(" + ")} ${c.relation} ${formatNumber(c.rhs)}.<br>`;
+        });
+        initialExplanation += "Slack (s), Surplus (su), and Artificial (a) variables added as needed. Artificial variables get a large penalty (-M) in the objective function.";
+
+
+        return {
+            variables,
+            objective: extendedObjective,
+            basis,
+            cb,
+            rows,
+            iteration: 0,
+            explanation: initialExplanation,
+            status: 'initial',
+            pivotColumnIndex: null,
+            pivotRowIndex: null,
+            pivotElement: null,
+            ratios: []
+        };
+    }
+    
+    function renderState(state) {
+        const tablesDiv = document.getElementById('tablesContainer');
+        tablesDiv.innerHTML = ''; 
+
+        const table = document.createElement('table');
+        table.className = 'table table-bordered table-hover caption-top';
+        const caption = table.createCaption();
+        caption.innerHTML = `<strong>Tableau for Iteration ${state.iteration}</strong>`;
+
+        const thead = table.createTHead();
+        const headerRow = thead.insertRow();
+        ['Basic', 'C<sub>B</sub>', ...state.variables, 'RHS'].forEach(text => {
+            const th = document.createElement('th');
+            th.innerHTML = text;
+            headerRow.appendChild(th);
+        });
+        if (state.status === 'selecting_leaving') {
+            const thRatio = document.createElement('th');
+            thRatio.innerHTML = 'Ratio';
+            headerRow.appendChild(thRatio);
+        }
+
+
+        const cjRow = thead.insertRow();
+        let cjHtml = '<td>C<sub>j</sub></td><td></td>';
+        state.objective.forEach(c => cjHtml += `<td>${formatNumber(c)}</td>`);
+        cjHtml += '<td></td>'; 
+        if (state.status === 'selecting_leaving') cjHtml += '<td></td>';
+        cjRow.innerHTML = cjHtml;
+
+        const tbody = table.createTBody();
+        state.rows.forEach((rowData, i) => {
+            const tr = tbody.insertRow();
+            tr.insertCell().innerHTML = state.basis[i];
+            tr.insertCell().innerHTML = formatNumber(state.cb[i]);
+            rowData.forEach((val, j) => {
+                const cell = tr.insertCell();
+                cell.innerHTML = formatNumber(val);
+                if (j < state.variables.length) { // Don't apply column highlight to RHS
+                    if (i === state.pivotRowIndex && j === state.pivotColumnIndex) {
+                        cell.classList.add('pivot-element');
+                    } else if (i === state.pivotRowIndex) {
+                        cell.classList.add('pivot-row');
+                    } else if (j === state.pivotColumnIndex) {
+                        cell.classList.add('pivot-column');
+                    }
+                }
+            });
+             if (i === state.pivotRowIndex && state.pivotColumnIndex === null) { // Highlight whole pivot row if only row is selected
+                Array.from(tr.cells).forEach(c => c.classList.add('pivot-row'));
+            }
+            if (state.status === 'selecting_leaving' && state.ratios && state.ratios[i] !== undefined) {
+                tr.insertCell().innerHTML = formatNumber(state.ratios[i]);
+            }
+        });
+
+        const zj = Array(state.variables.length + 1).fill(0);
+        state.rows.forEach((row, i) => {
+            row.forEach((val, j) => {
+                zj[j] += state.cb[i] * val;
+            });
+        });
+
+        const zjRow = tbody.insertRow();
+        let zjHtml = '<td>Z<sub>j</sub></td><td></td>'; 
+        zj.forEach(val => zjHtml += `<td>${formatNumber(val)}</td>`);
+        if (state.status === 'selecting_leaving') zjHtml += '<td></td>';
+        zjRow.innerHTML = zjHtml;
+
+        const cjZj = state.objective.map((c, i) => c - zj[i]);
+        const cjZjRow = tbody.insertRow();
+        let cjZjHtml = '<td>C<sub>j</sub>-Z<sub>j</sub></td><td></td>';
+        cjZj.forEach(val => {
+            const cell = document.createElement('td');
+            cell.innerHTML = formatNumber(val);
+            cjZjHtml += cell.outerHTML;
+        });
+        cjZjHtml += '<td></td>'; 
+        if (state.status === 'selecting_leaving') cjZjHtml += '<td></td>';
+        cjZjRow.innerHTML = cjZjHtml;
+        
+        tablesDiv.appendChild(table);
+
+        const explanationDiv = document.getElementById('explanationContainer');
+        explanationDiv.innerHTML = `<div class="explanation-box">${state.explanation}</div>`;
+
+        const solutionDiv = document.getElementById('solutionDisplay');
+        if (state.status === 'optimal' || state.status === 'infeasible' || state.status === 'unbounded') {
+            let message = '';
+            let solClass = 'solution-optimal';
+
+            if (state.status === 'optimal') {
+                message = `<h4>Optimal Solution Found at Iteration ${state.iteration}</h4>`;
+                message += `<p><strong>Objective Value (Z): ${formatNumber(zj[zj.length - 1])}</strong></p>`;
+                state.variables.forEach((v, i) => {
+                    if (!v.startsWith('s') && !v.startsWith('su') && !v.startsWith('a')) { // Only show decision variables
+                        const basisIndex = state.basis.indexOf(v);
+                        if (basisIndex !== -1) {
+                            message += `<p><strong>${v}:</strong> ${formatNumber(state.rows[basisIndex][state.variables.length])}</p>`;
+                        } else {
+                            message += `<p><strong>${v}:</strong> 0</p>`;
+                        }
+                    }
+                });
+                 let artificialInBasisNonZero = false;
+                 state.basis.forEach((bv, i) => {
+                    if (bv.startsWith('a') && Math.abs(state.rows[i][state.variables.length]) > 1e-6) {
+                        artificialInBasisNonZero = true;
+                    }
+                 });
+                 if (artificialInBasisNonZero) {
+                    message = `<h4>Problem Infeasible</h4> <p>An artificial variable remains in the basis with a non-zero value.</p>`;
+                    solClass = 'solution-error';
+                 }
+
+            } else if (state.status === 'infeasible') {
+                message = `<h4>Problem Infeasible</h4> <p>Optimal C<sub>j</sub>-Z<sub>j</sub> row achieved, but one or more artificial variables are in the basis with positive values.</p>`;
+                solClass = 'solution-error';
+            } else if (state.status === 'unbounded') {
+                message = `<h4>Problem Unbounded</h4> <p>An entering variable was selected, but all coefficients in its column are non-positive, indicating an unbounded solution.</p>`;
+                solClass = 'solution-error';
+            }
+            solutionDiv.innerHTML = message;
+            solutionDiv.className = `solution-box ${solClass}`;
+            solutionDiv.style.display = 'block';
+            document.getElementById('nextBtn').disabled = true;
+        } else {
+            solutionDiv.style.display = 'none';
+        }
+    }
+
+    function performIteration() {
+        if (!currentState || ['optimal', 'infeasible', 'unbounded'].includes(currentState.status)) return;
+
+        currentState.iteration++;
+        currentState.pivotColumnIndex = null;
+        currentState.pivotRowIndex = null;
+        currentState.pivotElement = null;
+        currentState.ratios = [];
+        let explanation = `<strong>Iteration ${currentState.iteration}:</strong><br>`;
+
+        const zj = Array(currentState.variables.length + 1).fill(0);
+        currentState.rows.forEach((row, i) => {
+            row.forEach((val, j) => zj[j] += currentState.cb[i] * val);
+        });
+        const cjZj = currentState.objective.map((c, i) => c - zj[i]);
+
+        explanation += "Calculated Z<sub>j</sub> and C<sub>j</sub>-Z<sub>j</sub> rows.<br>";
+
+        const maxCjZj = Math.max(...cjZj.filter((val, idx) => idx < currentState.variables.length)); // Exclude RHS part of Zj
+
+        if (maxCjZj <= 1e-9) { // Allow for small floating point errors
+            let artificialInBasisNonZero = false;
+            currentState.basis.forEach((v, i) => {
+                if (v.startsWith('a') && Math.abs(currentState.rows[i][currentState.variables.length]) > 1e-6) {
+                    artificialInBasisNonZero = true;
+                }
+            });
+            if (artificialInBasisNonZero) {
+                currentState.status = 'infeasible';
+                explanation += "All C<sub>j</sub>-Z<sub>j</sub> ≤ 0, but an artificial variable is in the basis with a non-zero value. Problem is infeasible.";
+            } else {
+                currentState.status = 'optimal';
+                explanation += "All C<sub>j</sub>-Z<sub>j</sub> ≤ 0. Optimal solution reached.";
+            }
+            currentState.explanation = explanation;
+            renderState(currentState);
+            return;
+        }
+
+        const enteringIndex = cjZj.indexOf(maxCjZj);
+        currentState.pivotColumnIndex = enteringIndex;
+        const enteringVar = currentState.variables[enteringIndex];
+        explanation += `Selected <strong>${enteringVar}</strong> as the entering variable (max C<sub>j</sub>-Z<sub>j</sub> = ${formatNumber(maxCjZj)}).<br>`;
+        currentState.status = 'selecting_leaving'; // For ratio display
+
+        const ratios = currentState.rows.map((row, i) => {
+            const coef = row[enteringIndex];
+            const rhs = row[row.length - 1];
+            return coef > 1e-9 ? rhs / coef : Infinity; 
+        });
+        currentState.ratios = ratios;
+        explanation += "Calculated ratios (RHS / Pivot Column Coefficient): [" + ratios.map(r => formatNumber(r)).join(", ") + "].<br>";
+        
+        let minRatio = Infinity;
+        let leavingIndex = -1;
+        ratios.forEach((r, i) => {
+            if (r < minRatio && r >=0) { // Must be non-negative min ratio
+                minRatio = r;
+                leavingIndex = i;
+            }
+        });
+
+
+        if (leavingIndex === -1 || minRatio === Infinity) {
+            currentState.status = 'unbounded';
+            explanation += "All coefficients in the pivot column are non-positive. Problem is unbounded.";
+            currentState.explanation = explanation;
+            renderState(currentState);
+            return;
+        }
+        
+        currentState.pivotRowIndex = leavingIndex;
+        const leavingVar = currentState.basis[leavingIndex];
+        explanation += `Selected <strong>${leavingVar}</strong> as the leaving variable (min ratio = ${formatNumber(minRatio)}).<br>`;
+        
+        const pivotElement = currentState.rows[leavingIndex][enteringIndex];
+        currentState.pivotElement = pivotElement;
+        explanation += `Pivot element is ${formatNumber(pivotElement)} at (${leavingVar}, ${enteringVar}).<br>`;
+        explanation += "Performing pivot operations:<br>";
+
+        currentState.explanation = explanation; // Update explanation before pivot for rendering ratios
+        renderState(currentState); // Render with highlights and ratios before actual pivot for learning
+        
+        // Actual pivot logic will be applied for the *next* render if we want step-by-step
+        // For now, we complete the pivot and then render the new table.
+        // To show ratios on current table, then pivot, requires more state management or two render calls.
+        // The current approach is to show what WAS selected, then the NEW table.
+        // Let's make it so it shows the selections, and THEN the next click does the pivot.
+        // Or, current: show selections and new table in one go. The current explanation explains what *happened*.
+        
+        // --- Pivot Operation ---
+        explanation += "   1. Normalize pivot row: R<sub>" + (leavingIndex+1) + " (new)</sub> = R<sub>" + (leavingIndex+1) + " (old)</sub> / " + formatNumber(pivotElement) + ".<br>";
+        const pivotRow = currentState.rows[leavingIndex];
+        for (let j = 0; j < pivotRow.length; j++) {
+            pivotRow[j] /= pivotElement;
+        }
+
+        explanation += "   2. Update other rows: R<sub>i (new)</sub> = R<sub>i (old)</sub> - (coefficient<sub>i,pivot_col</sub> * R<sub>pivot_row (new)</sub>).<br>";
+        currentState.rows.forEach((row, i) => {
+            if (i === leavingIndex) return;
+            const factor = row[enteringIndex];
+            for (let j = 0; j < row.length; j++) {
+                row[j] -= factor * pivotRow[j];
+            }
+        });
+
+        currentState.basis[leavingIndex] = enteringVar;
+        currentState.cb[leavingIndex] = currentState.objective[enteringIndex];
+        
+        currentState.status = 'pivoted'; 
+        currentState.explanation = explanation;
+        renderState(currentState); // Re-render with the new pivoted table
+        
+        // Reset for next iteration's selection highlights
+        currentState.pivotColumnIndex = null; 
+        currentState.pivotRowIndex = null;
+        currentState.pivotElement = null;
+        currentState.ratios = [];
+    }
+
+
+    function resetSolver() {
+        currentState = null;
+        document.getElementById('tablesContainer').innerHTML = '';
+        document.getElementById('explanationContainer').innerHTML = '';
+        document.getElementById('solutionDisplay').style.display = 'none';
+        document.getElementById('nextBtn').style.display = 'none';
+        document.getElementById('objective').value = '';
+        document.getElementById('constraints').value = '';
+        document.getElementById('objective').focus();
+    }
+
+</script><script type="module"></script></body></html>
