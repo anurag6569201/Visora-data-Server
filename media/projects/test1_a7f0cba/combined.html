@@ -1,0 +1,73 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>test1</title><style>body {
+  font-family: system-ui, sans-serif;
+  padding: 20px;
+  line-height: 1.6;
+  background-color: #f8f9fa;
+}
+h1 {
+  color: #343a40;
+}
+button {
+  padding: 10px 18px;
+  font-size: 1rem;
+  cursor: pointer;
+  background-color: #0d6efd;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  transition: background-color 0.2s ease;
+}
+button:hover {
+  background-color: #0b5ed7;
+}
+
+/* --- Appended AI CSS --- */
+#changeBgButton {
+  margin-top: 10px;
+}</style></head><body><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simple Page</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Hello, Visora!</h1>
+  <p>This is a basic HTML page.</p>
+  <button id="myButton">Click Me</button>
+  <script src="script.js"></script>
+</body>
+</html>
+
+<!-- Appended AI HTML -->
+<button id="changeBgButton">Change Background</button><script type="module">console.log('Script loaded successfully!');
+
+const button = document.getElementById('myButton');
+
+if (button) {
+  button.addEventListener('click', () => {
+    alert('Button was clicked!');
+    console.log('Button click event handled.');
+  });
+} else {
+  console.warn('Button element not found.');
+}
+
+// --- Appended AI JS ---
+const changeBgButton = document.getElementById('changeBgButton');
+
+if (changeBgButton) {
+  changeBgButton.addEventListener('click', () => {
+    document.body.style.backgroundColor = getRandomColor();
+  });
+}
+
+function getRandomColor() {
+  const letters = '0123456789ABCDEF';
+  let color = '#';
+  for (let i = 0; i < 6; i++) {
+    color += letters[Math.floor(Math.random() * 16)];
+  }
+  return color;
+}</script></body></html>

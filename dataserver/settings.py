@@ -19,7 +19,12 @@ ADMIN_URL_PREFIX = f'{ADMIN_SECRET_PATH_SEGMENT}/'
 DEBUG = os.getenv('DJANGO_DEBUG', 'True') == 'True'
 
 # Hosts
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [ 
+    "127.0.0.1",
+    "0.0.0.0",
+    "data.visora.cloud",
+    "visora-data-server.vercel.app",
+]
 
 # Installed Apps
 INSTALLED_APPS = [
@@ -141,9 +146,24 @@ LOGIN_REDIRECT_URL = '/'
 
 # CORS Settings
 CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOWED_ORIGINS = [
+CSRF_TRUSTED_ORIGINS = [
+    # local host ports
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+
+    # Main client side 
+    "https://visora.cloud",
+
+    # visora core auths and features api
+    "https://core.visora.cloud",
+    "https://visora-server-mi30bg5tq-anurag-singhs-projects-e7a4e4c9.vercel.app",
+    "https://visora-server.vercel.app",
+
+    # visora data server api
+    "https://data.visora.cloud",
+    "https://visora-data-server-5g7802nh3-anurag-singhs-projects-e7a4e4c9.vercel.app",
+    "https://visora-data-server.vercel.app",
+
 ]
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = [
@@ -156,8 +176,23 @@ CORS_ALLOW_METHODS = [
 
 # CSRF Settings
 CSRF_TRUSTED_ORIGINS = [
+    # local host ports
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+
+    # Main client side 
+    "https://visora.cloud",
+
+    # visora core auths and features api
+    "https://core.visora.cloud",
+    "https://visora-server-mi30bg5tq-anurag-singhs-projects-e7a4e4c9.vercel.app",
+    "https://visora-server.vercel.app",
+
+    # visora data server api
+    "https://data.visora.cloud",
+    "https://visora-data-server-5g7802nh3-anurag-singhs-projects-e7a4e4c9.vercel.app",
+    "https://visora-data-server.vercel.app",
+
 ]
 CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_SECURE = False
